@@ -7,7 +7,7 @@
 ## 1. Estado
 
 * **Fecha:** 2026-09-05
-* **Estado:** Aceptada por el equipo (9A-E05)
+* **Estado:** Aceptada por el equipo (10A-E05)
 
 ---
 
