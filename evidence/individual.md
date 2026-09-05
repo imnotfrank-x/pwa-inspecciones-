@@ -44,4 +44,27 @@ Utilicé IA como apoyo para estructurar y redactar el documento de requisitos. L
 
 ## Integrante: Hernandez Mendez Javier — 3523110052
 
-Pendiente de completar personalmente por el integrante.
+### Javier
+
+**Contribución concreta y enlace:**
+Completé íntegramente el documento `docs/decision-record.md` (ADR-001) para fundamentar la decisión arquitectónica del producto: registré el estado de la decisión, el contexto operativo y restricciones del proyecto (usuarios inspectores, conectividad intermitente, uso móvil, datos sintéticos y alcance de la Semana 1), desarrollé la matriz comparativa de cuatro alternativas (PWA, Web tradicional, App nativa y App multiplataforma) evaluadas bajo siete criterios técnicos, justifiqué la adopción de Next.js como PWA destacando los beneficios para los inspectores y definiendo el criterio de exclusión frente a apps nativas, analicé consecuencias y riesgos (costos de sincronización, conflictos al reconectar, datos desactualizados y compatibilidad de navegadores con sus respectivas mitigaciones), y definí el protocolo para la validación técnica futura. El cambio quedó registrado en el commit [`a85c897cdad8e74cb510709d516428b383117bde`](https://github.com/imnotfrank-x/pwa-inspecciones-/commit/a85c897cdad8e74cb510709d516428b383117bde).
+
+**Decisión que puedo explicar y por qué:**
+Puedo explicar por qué el equipo eligió la estrategia de Progressive Web App (PWA) manteniendo Next.js 14 en lugar de una aplicación nativa o web tradicional: la PWA permite una distribución inmediata vía web sin intermediación de tiendas ni costos de cuentas de desarrollador, reutiliza la base de código existente para escritorio y móvil, y proporciona el soporte técnico para implementar progresivamente almacenamiento local (IndexedDB) y Service Workers requeridos por el escenario de conectividad intermitente (ESC-02). Asimismo, puedo explicar que una app nativa únicamente se justificaría si se requirieran sensores industriales especializados o procesamiento pesado continuo en segundo plano.
+
+**Comando ejecutado personalmente:**
+Con el servidor de desarrollo detenido, ejecuté personalmente `npm ci` y `npm run verify` desde la carpeta que contiene `package.json`.
+
+**Resultado real que observé:**
+- `npm ci`: Terminó correctamente con código 0, instalando 28 paquetes y auditando 29 paquetes en 25 segundos. Reportó 2 vulnerabilidades de severidad alta en dependencias provistas por el starter (sin forzar modificaciones con `npm audit fix --force`).
+- `npm run verify`: Ejecutó `tests/starter.spec.mjs` con resultado `PASS`, compiló exitosamente el build de producción con Next.js 14.2.35 generando las páginas estáticas (4/4), y concluyó con `Verificación técnica: pass. Revisión académica: pendiente. Reporte: reports/verification.json` (Node.js v22.22.0).
+
+**Qué verifica esa prueba y qué no verifica:**
+- *Qué verifica:* Comprueba la presencia de la estructura y archivos obligatorios del repositorio, ejecuta la prueba automatizada `starter.spec.mjs`, compila el build de producción para validar tipados y dependencias, y genera el archivo `reports/verification.json`.
+- *Qué no verifica:* Un estado `pass` no evalúa ni califica el contenido, profundidad o calidad de los requisitos en `requirements.md` ni del ADR en `decision-record.md`; no certifica ausencia de credenciales o secretos; no valida accesibilidad (RNF-02) ni privacidad (RNF-04); y no demuestra funcionamiento offline, manifest ni sincronización, ya que son capacidades futuras no implementadas en Semana 1.
+
+**Limitación, dificultad o riesgo que identifiqué:**
+La persistencia offline y la sincronización no ocurren automáticamente por usar Next.js o PWA; demandan diseñar explícitamente esquemas en IndexedDB, colas transaccionales de mutaciones y estrategias de resolución de conflictos (LWW o control de versiones) para evitar sobreescrituras al reconectar. Además, existen diferencias entre navegadores (las restricciones de almacenamiento y ciclo de vida de WebKit/Safari en iOS frente a Chromium en Android). Técnicamente, se identificaron 2 vulnerabilidades de severidad alta en las dependencias del starter que no deben forzarse con `npm audit fix --force` para no romper la compatibilidad, y se confirmó que el servidor de desarrollo debe detenerse antes de compilar para evitar bloqueos en `.next/trace` en Windows.
+
+**Uso de IA:**
+Utilicé IA (Antigravity IDE con modelo Gemini) como asistente de redacción y estructuración analítica para contrastar las alternativas arquitectónicas del ADR y redactar de forma rigurosa los riesgos y validaciones. Ejecuté personalmente los comandos técnicos (`npm ci`, `npm run verify`), verifiqué y registré los resultados reales observados en mi terminal y en `reports/verification.json`, asegurando que ninguna afirmación asumiera funciones offline ya implementadas.
