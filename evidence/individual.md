@@ -15,7 +15,32 @@
 
 ## Integrante: Hernández Camacho Carlos Eduardo — 3515110194
 
-Pendiente de completar personalmente por el integrante.
+### Carlos
+
+**Contribución concreta:**
+Completé el documento `docs/requirements.md`, definiendo el problema y contexto del producto, los usuarios y escenarios ESC-01 y ESC-02, los requisitos funcionales y no funcionales, los datos sintéticos y los criterios de aceptación de la Semana 1. El cambio quedó registrado en el commit [`7ec356120d9a3b4069d881ce2523cbe86e51a331`](https://github.com/imnotfrank-x/pwa-inspecciones-/commit/7ec356120d9a3b4069d881ce2523cbe86e51a331).
+
+**Decisión que puedo explicar:**
+Decidí diferenciar las funciones disponibles durante la Semana 1 de las capacidades futuras. La conservación local y la sincronización de registros se documentaron como requisitos futuros debido a que la actividad indica que todavía no deben implementarse las funciones offline.
+
+**Comando ejecutado personalmente:**
+Ejecuté `npm ci` y posteriormente `npm test` desde la carpeta que contiene `package.json`.
+
+**Resultado real:**
+`npm ci` terminó correctamente, instalando 28 paquetes y auditando 29 paquetes. Durante la auditoría se reportaron 2 vulnerabilidades de severidad alta. Después ejecuté `npm test` y obtuve el resultado `starter.spec.mjs: PASS`.
+
+**Qué verifica la prueba:**
+La ejecución de `npm test` verifica que las pruebas proporcionadas por el starter se ejecutan correctamente y que la prueba indicada terminó con resultado `PASS`.
+
+**Qué no verifica:**
+Esta prueba no demuestra por sí sola que todos los requisitos documentados estén implementados, ni valida la calidad del análisis de requisitos, la accesibilidad, la privacidad o las funcionalidades offline futuras.
+
+**Limitación o riesgo identificado:**
+Durante `npm ci` se reportaron 2 vulnerabilidades de severidad alta en las dependencias instaladas. No ejecuté `npm audit fix --force` porque podría introducir cambios incompatibles en las dependencias del proyecto.
+
+**Uso de IA:**
+Utilicé IA como apoyo para estructurar y redactar el documento de requisitos. La ejecución de los comandos y el resultado reportado de `npm test` fueron realizados personalmente y corresponden al resultado observado en mi entorno.
+
 
 ## Integrante: Hernandez Mendez Javier — 3523110052
 
