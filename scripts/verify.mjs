@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const root = resolve(import.meta.dirname, "..");
-const required = ["package.json", "package-lock.json", "README.md", "src/app/layout.tsx", "src/app/page.tsx", "src/app/globals.css", "src/lib/data/inspections.ts", "docs/requirements.md", "docs/decision-record.md", "tests/starter.spec.mjs", "evidence/individual.md"];
+const required = [".nvmrc", "package.json", "package-lock.json", "README.md", "public/manifest.webmanifest", "public/icons/icon-192.png", "public/icons/icon-512.png", "src/app/layout.tsx", "src/app/page.tsx", "src/app/loading.tsx", "src/app/error.tsx", "src/app/globals.css", "src/components/app-shell.tsx", "src/components/inspection-list.tsx", "src/lib/data/inspections.ts", "docs/requirements.md", "docs/decision-record.md", "tests/starter.spec.mjs", "tests/manifest.spec.ts", "tests/inspection-states.spec.ts", "tests/app-shell.spec.ts", "evidence/individual.md"];
 const missing = required.filter(file => !existsSync(resolve(root, file)));
 const structureOnly = process.argv.includes("--structure");
 if (structureOnly) {
@@ -33,10 +33,10 @@ const result = {
   runtime: { node: process.version },
   status: checks.every(c => c.status === "pass") ? "pass" : "fail",
   checks,
-  academicReview: { status: "pending", message: "Sin calificación automática. Revisar requisitos, decisión y evidencia por integrante con la rúbrica; existencia no implica calidad.", documents },
-  limits: ["La instalación se verifica mediante npm ci por separado.", "No certifica ausencia de secretos.", "Las pruebas proporcionadas no cubren toda la aplicación."]
+  academicReview: { status: "pending", message: "Sin calificaciÃ³n automÃ¡tica. Revisar requisitos, decisiÃ³n y evidencia por integrante con la rÃºbrica; existencia no implica calidad.", documents },
+  limits: ["La instalaciÃ³n se verifica mediante npm ci por separado.", "No certifica ausencia de secretos.", "Las pruebas proporcionadas no cubren toda la aplicaciÃ³n."]
 };
 mkdirSync(resolve(root, "reports"), { recursive: true });
 writeFileSync(resolve(root, "reports/verification.json"), JSON.stringify(result, null, 2) + "\n");
-console.log(`\nVerificación técnica: ${result.status}. Revisión académica: pendiente. Reporte: reports/verification.json`);
+console.log(`\nVerificaciÃ³n tÃ©cnica: ${result.status}. RevisiÃ³n acadÃ©mica: pendiente. Reporte: reports/verification.json`);
 process.exit(result.status === "pass" ? 0 : 1);

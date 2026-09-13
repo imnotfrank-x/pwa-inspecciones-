@@ -1,27 +1,27 @@
 {
-  "name": "pwa-inspecciones-laboratorio",
-  "version": "0.1.0",
-  "private": true,
-  "engines": {
-    "node": ">=20.19.0 <21",
-    "npm": ">=10"
-  },
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "test": "node tests/starter.spec.mjs && node tests/manifest.spec.ts && node tests/inspection-states.spec.ts",
-    "verify": "node scripts/verify.mjs"
-  },
-  "dependencies": {
-    "next": "14.2.35",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
-  },
-  "devDependencies": {
-    "@types/node": "^20.14.15",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "typescript": "^5.4.5"
-  }
+    "name":  "pwa-inspecciones-laboratorio",
+    "version":  "0.1.0",
+    "private":  true,
+    "engines":  {
+                    "node":  "\u003e=20.19.0 \u003c21",
+                    "npm":  "\u003e=10"
+                },
+    "scripts":  {
+                    "dev":  "next dev",
+                    "build":  "next build",
+                    "start":  "next start",
+                    "test":  "node tests/starter.spec.mjs \u0026\u0026 node tests/manifest.spec.ts \u0026\u0026 node tests/inspection-states.spec.ts \u0026\u0026 node tests/app-shell.spec.ts",
+                    "verify":  "node scripts/verify.mjs"
+                },
+    "dependencies":  {
+                         "next":  "14.2.35",
+                         "react":  "18.3.1",
+                         "react-dom":  "18.3.1"
+                     },
+    "devDependencies":  {
+                            "@types/node":  "^20.14.15",
+                            "@types/react":  "^18.3.3",
+                            "@types/react-dom":  "^18.3.0",
+                            "typescript":  "^5.4.5"
+                        }
 }

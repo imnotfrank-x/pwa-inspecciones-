@@ -9,7 +9,7 @@ type ErrorPageProps = {
 
 export default function ErrorPage({ reset }: ErrorPageProps) {
   return (
-    <main className="page-shell">
+    <div className="page-shell">
       <section
         aria-labelledby="error-heading"
         className="state-panel state-panel-error"
@@ -25,6 +25,6 @@ export default function ErrorPage({ reset }: ErrorPageProps) {
           Volver a intentar
         </button>
       </section>
-    </main>
+    </div>
   );
 }

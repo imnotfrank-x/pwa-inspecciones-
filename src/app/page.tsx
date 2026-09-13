@@ -33,10 +33,13 @@ export default function HomePage({ searchParams }: HomePageProps) {
   const state = resolveInspectionState(searchParams?.estado);
 
   return (
-    <main className="page-shell">
-      <header className="hero">
+    <div className="page-shell">
+      <section
+        aria-labelledby="page-title"
+        className="hero"
+      >
         <p className="eyebrow">Proyecto acumulativo · Semana 2</p>
-        <h1>Inspecciones de laboratorio</h1>
+        <h1 id="page-title">Inspecciones de laboratorio</h1>
         <p className="lead">
           Registro de mantenimiento preparado para trabajar con conectividad
           intermitente. Los datos mostrados son sintéticos.
@@ -44,13 +47,14 @@ export default function HomePage({ searchParams }: HomePageProps) {
         <span className="status">
           Manifest instalable · estados verificables
         </span>
-      </header>
+      </section>
 
       <InspectionList inspections={inspections} state={state} />
 
       <aside
         aria-labelledby="state-verification-heading"
         className="state-verification"
+        id="state-verification"
       >
         <h2 id="state-verification-heading">
           Verificación reproducible de estados
@@ -59,6 +63,7 @@ export default function HomePage({ searchParams }: HomePageProps) {
           Estas vistas utilizan únicamente datos sintéticos y permiten comprobar
           cada estado sin depender de servicios externos.
         </p>
+
         <nav aria-label="Vistas de verificación">
           <a href="/">Registros</a>
           <a href="/?estado=carga">Carga</a>
@@ -66,12 +71,6 @@ export default function HomePage({ searchParams }: HomePageProps) {
           <a href="/?estado=vacio">Vacío</a>
         </nav>
       </aside>
-
-      <footer className="footer">
-        <p>
-          Aplicaciones Web Progresivas · Universidad Tecnológica de Tehuacán
-        </p>
-      </footer>
-    </main>
+    </div>
   );
 }
