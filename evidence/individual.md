@@ -13,6 +13,18 @@
 - **Limitación, dificultad o riesgo que identifiqué:** El build puede fallar en Windows si el servidor de desarrollo conserva bloqueado `.next/trace`. Además, `npm ci` informó dos vulnerabilidades de severidad alta en dependencias; no se aplicaron actualizaciones forzadas porque podrían modificar el starter y requieren una evaluación separada.
 - **Uso de IA:** Utilicé Codex para analizar las instrucciones, organizar la distribución del trabajo y revisar la interpretación de los resultados técnicos. Verifiqué personalmente las versiones, ejecuté los comandos, comprobé sus resultados y confirmé que las afirmaciones correspondieran con la salida real.
 
+### Incremento personal — Semana 2
+
+- **Commit de mi contribución:** [`f439887c70a46c49c00672d11fcbad36445cc467`](https://github.com/imnotfrank-x/pwa-inspecciones-/commit/f439887c70a46c49c00672d11fcbad36445cc467).
+- **Contribución concreta:** Implementé `public/manifest.webmanifest`, incorporé iconos PNG reales de 192 y 512 píxeles, conservé sus fuentes SVG editables, enlacé el manifest desde `src/app/layout.tsx`, declaré la versión de Node utilizada y agregué `tests/manifest.spec.ts` al comando obligatorio `npm test`.
+- **Decisión técnica que puedo explicar:** La prueba del manifest utiliza `node:assert/strict` y módulos integrados de Node.js. El archivo conserva la extensión `.ts` solicitada, pero usa sintaxis JavaScript compatible con CommonJS para poder ejecutarse directamente con Node.js 20.19.0, sin introducir un framework adicional para comprobar JSON y archivos estáticos.
+- **Decisión de instalación que puedo explicar:** Elegí `display: "standalone"`, `start_url: "/"` y `scope: "/"` porque el incremento prepara un shell instalable de una sola aplicación. El icono de 512 píxeles declara `maskable` y mantiene una zona segura para soportar recortes de distintas plataformas.
+- **Prueba ejecutada y resultado reproducible:** En el entorno local con Node.js `v20.19.0` y npm `10.8.2` se ejecutaron `npm ci --ignore-scripts --no-audit --no-fund`, `npm test`, `npm run test -- --run`, `npm run build` y `npm run verify`. La instalación agregó 28 paquetes; `starter.spec.mjs` y `manifest.spec.ts` terminaron en `PASS`; el build de Next.js 14.2.35 compiló, validó tipos y generó cuatro páginas estáticas; y la verificación terminó con estado técnico `pass`.
+- **Qué verifica mi prueba:** Comprueba que el manifest sea JSON válido, que contenga los campos críticos de instalación, que enlace el manifest desde el layout, que declare iconos PNG locales de 192 y 512 píxeles, que esos archivos existan y que sus dimensiones reales coincidan.
+- **Qué no verifica:** La prueba no demuestra funcionamiento offline, instalación en todos los navegadores, sincronización, persistencia local ni compatibilidad completa entre Android e iOS.
+- **Limitación o fallo diagnosticado:** El manifest y los iconos describen la experiencia instalable, pero no proporcionan caché offline. Esa capacidad requerirá un Service Worker en un incremento posterior. Una ejecución preliminar con el runtime interno de Codex mostró advertencias de caché de webpack; la repetición con Node.js 20.19.0 terminó correctamente y sin esas advertencias.
+- **Uso declarado de IA:** Utilicé Codex para analizar el contrato, revisar la compatibilidad con Node.js 20.19.0, completar la implementación, generar los PNG a partir del diseño SVG y ejecutar una verificación reproducible. Revisaré los cambios y repetiré personalmente los comandos antes de entregar para confirmar que puedo explicar y modificar cada decisión.
+
 ## Integrante: Hernández Camacho Carlos Eduardo — 3515110194
 
 ### Carlos

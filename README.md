@@ -50,3 +50,52 @@ Inviten a los integrantes y al docente al mismo repositorio privado. Cada person
 - `tests/`: prueba inicial proporcionada; no es una suite completa de comportamiento.
 
 El starter todavía no implementa instalación PWA, offline ni sincronización. La ejecución también mostró que un servidor de desarrollo activo puede mantener bloqueado `.next/trace` en Windows e impedir temporalmente el build. No incluyan datos personales reales en el producto, archivos `.env` ni credenciales. La identificación de integrantes se conserva en el repositorio privado y Classroom.
+
+## Incremento de la Semana 2
+
+### Entorno y configuración
+
+La implementación del manifest se verificó con Node.js `v20.19.0` y npm `10.8.2`. El archivo `.nvmrc` fija la versión local en `20.19.0` y `package.json` declara compatibilidad con Node.js desde `20.19.0` y antes de la versión 21. Este rango también admite revisiones posteriores de Node 20 utilizadas por el entorno de integración.
+
+### Manifest e instalación
+
+La aplicación incluye `public/manifest.webmanifest` con nombre completo, nombre corto, descripción, idioma `es-MX`, `start_url`, `scope`, modo de visualización `standalone`, colores de fondo y tema e iconos PNG de 192 y 512 píxeles.
+
+Se eligió `display: "standalone"` para que el shell instalado pueda abrirse separado de la interfaz habitual del navegador. Tanto `start_url` como `scope` usan `/` porque la entrega actual tiene una sola aplicación y no necesita solicitar control sobre rutas externas.
+
+El icono de 512 píxeles declara el propósito `maskable` y conserva margen alrededor del símbolo para disminuir el riesgo de recorte en dispositivos que aplican distintas formas. Los SVG originales se conservan como fuentes editables y `scripts/generate-icons.ps1` permite regenerar los PNG de manera reproducible.
+
+`src/app/layout.tsx` enlaza el manifest y los iconos mediante la API de metadatos de Next.js. El color del navegador se declara mediante la exportación `viewport`, compatible con Next.js 14.
+
+### Prueba del manifest
+
+`tests/manifest.spec.ts` utiliza módulos integrados de Node.js. Convierte el manifest a JSON, comprueba los campos críticos, valida rutas locales, confirma que los iconos sean PNG reales y compara sus dimensiones físicas con los tamaños declarados. No necesita un framework de pruebas ni servicios externos.
+
+El script `npm test` conserva la prueba de la Semana 1 y después ejecuta obligatoriamente la prueba del manifest. También acepta el argumento adicional usado por el workflow de evaluación:
+
+```bash
+npm test
+npm run test -- --run
+```
+
+### Verificación del incremento de Francisco
+
+Se ejecutaron los siguientes comandos desde una instalación limpia:
+
+```bash
+npm ci --ignore-scripts --no-audit --no-fund
+npm test
+npm run test -- --run
+npm run build
+npm run verify
+```
+
+`npm ci` terminó con código 0 e instaló 28 paquetes en 25 segundos. `starter.spec.mjs` y `manifest.spec.ts` terminaron en `PASS`, tanto en la ejecución normal como con `--run`. El build de Next.js 14.2.35 compiló correctamente, validó los tipos y generó cuatro páginas estáticas. Finalmente, `npm run verify` repitió las pruebas y el build y terminó con estado técnico `pass`.
+
+### Decisiones, límites y fallos
+
+La prueba obligatoria mantiene la extensión `.ts`, pero usa sintaxis JavaScript compatible con CommonJS para ejecutarse directamente con Node.js 20.19.0. Esto evita agregar un framework de pruebas que no resulta necesario para validar un archivo JSON y sus recursos.
+
+El manifest proporciona identidad, metadatos de instalación y modo de presentación, pero no implementa por sí solo operación sin conexión. Este incremento no agrega Service Worker, IndexedDB, sincronización, autenticación ni backend. Los registros visibles continúan siendo exclusivamente sintéticos.
+
+Durante una comprobación preliminar con el runtime interno de Codex se observaron advertencias de caché de webpack, sin afectar la compilación. Al repetir la instalación y el build con Node.js 20.19.0, la compilación terminó sin esas advertencias y con código 0.
