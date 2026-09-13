@@ -60,6 +60,29 @@ Una limitación de esta verificación es que un resultado técnico `pass` no gar
 **Uso de IA:**
 
 Utilicé IA como apoyo para estructurar y redactar el documento de requisitos y para revisar la interpretación de las instrucciones de la actividad. La ejecución de `npm run verify`, así como la comprobación del resultado mostrado en la terminal, fueron realizadas personalmente y corresponden al resultado observado en mi entorno.
+### Incremento personal — Semana 2
+
+* **Commit de mi contribución:** `d625c4e0dda1e24911bf7f82ae26734e30ea9e31`.
+
+* **Contribución concreta:** Implementé `src/components/app-shell.tsx`, integré el App Shell desde `src/app/layout.tsx`, eliminé los landmarks `main` duplicados de las vistas, incorporé la navegación principal y el enlace para saltar directamente al contenido principal, completé los estilos responsive y agregué `tests/app-shell.spec.ts`.
+
+* **Decisión técnica que puedo explicar:** Centralicé la cabecera, la navegación, el contenido principal y el footer en `AppShell`. Las páginas proporcionan su contenido mediante `children`, evitando duplicar la estructura compartida y garantizando que la vista utilice un único landmark `main`.
+
+* **Decisión de accesibilidad que puedo explicar:** Incorporé una navegación con nombre accesible, estados de foco visibles y un enlace para saltar directamente al contenido principal. El elemento `main` utiliza `tabIndex={-1}` para poder recibir el foco después de activar el enlace de salto.
+
+* **Pruebas ejecutadas personalmente:** Ejecuté `npm test`, `npm run test -- --run`, `npm run build` y `npm run verify`.
+
+* **Resultado real observado:** `npm test` terminó correctamente y mostró `PASS` para `starter.spec.mjs`, `manifest.spec.ts`, `inspection-states.spec.ts` y `app-shell.spec.ts`. `npm run test -- --run` también terminó correctamente con las cuatro pruebas en `PASS`. `npm run build` compiló correctamente con Next.js 14.2.35, validó los tipos y generó las páginas previstas. `npm run verify` repitió las pruebas y el build y concluyó con `Verificación técnica: pass`. También se generó `reports/verification.json`.
+
+* **Verificación manual:** La navegación mediante teclado funcionó correctamente y los enlaces mostraron foco visible. El enlace `Saltar al contenido principal` apareció al recibir foco y permitió pasar al contenido principal. Los estados de carga, error y vacío conservaron el header, la navegación y el footer. En la vista de aproximadamente 375 px no se observó desplazamiento horizontal ni elementos encimados, y las tarjetas se acomodaron en una sola columna.
+
+* **Qué verifica mi prueba:** Comprueba que el App Shell contenga header, navegación, `main` y footer; que la navegación tenga un nombre accesible; que el enlace de salto tenga el destino correcto; que el layout integre `AppShell`; y que las vistas `page.tsx`, `loading.tsx` y `error.tsx` no generen un segundo `main`.
+
+* **Qué no verifica:** No constituye una auditoría completa con lector de pantalla, no evalúa todos los navegadores ni demuestra funcionamiento offline, sincronización o persistencia local.
+
+* **Limitación o fallo diagnosticado:** La integración exigió retirar los landmarks duplicados que existían en `page.tsx`, `loading.tsx` y `error.tsx`, ya que mantenerlos habría producido varios elementos `main` en una misma vista.
+
+* **Uso declarado de IA:** Utilicé Codex como apoyo para interpretar la guía de la actividad, revisar y estructurar la implementación del App Shell y apoyar la revisión de los cambios. Validé personalmente la implementación mediante las pruebas automatizadas, el build, `npm run verify` y las comprobaciones manuales de navegación, Skip link, estados y vista responsive.
 
 
 ## Integrante: Hernandez Mendez Javier — 3523110052

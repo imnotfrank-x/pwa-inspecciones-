@@ -138,3 +138,22 @@ Resultados observados por Javier en el entorno local con Node.js `v20.19.0` y np
 Los estados se modelaron de forma explícita para evitar que un arreglo vacío se interprete como error. Las vistas de prueba son deterministas y no dependen de red.
 
 Esta entrega no implementa una API, persistencia local, sincronización ni operación offline. El estado de error reproducible representa un escenario sintético; `error.tsx` cubre los fallos reales que alcancen el límite de Next.js.
+### App Shell y navegación
+
+La interfaz utiliza `src/components/app-shell.tsx` como límite del marco compartido. El componente contiene la cabecera, la marca de la aplicación, la navegación principal, un único landmark `main` y el pie de página. Las páginas se proporcionan mediante `children` y no incorporan otro `main`.
+
+La navegación principal contiene destinos funcionales para Inicio, Inspecciones y Estados. También existe un enlace para saltar directamente al contenido principal, visible al recibir foco mediante teclado.
+
+`src/app/layout.tsx` monta el App Shell sin modificar los metadatos, el manifest o los iconos. Los estados de carga, error y vacío se renderizan dentro del mismo marco visual.
+
+La verificación automatizada `tests/app-shell.spec.ts` comprueba la presencia de los landmarks, el nombre accesible de la navegación, el destino del enlace de salto, la integración con el layout y la existencia de un único elemento `main`.
+
+### Verificación realizada por Carlos
+
+Comandos ejecutados:
+
+```bash
+npm test
+npm run test -- --run
+npm run build
+npm run verify
