@@ -99,3 +99,42 @@ La prueba obligatoria mantiene la extensión `.ts`, pero usa sintaxis JavaScript
 El manifest proporciona identidad, metadatos de instalación y modo de presentación, pero no implementa por sí solo operación sin conexión. Este incremento no agrega Service Worker, IndexedDB, sincronización, autenticación ni backend. Los registros visibles continúan siendo exclusivamente sintéticos.
 
 Durante una comprobación preliminar con el runtime interno de Codex se observaron advertencias de caché de webpack, sin afectar la compilación. Al repetir la instalación y el build con Node.js 20.19.0, la compilación terminó sin esas advertencias y con código 0.
+
+### Estados de carga, error y vacío
+
+El listado de inspecciones distingue cuatro estados explícitos: `ready`, `loading`, `error` y `empty`. La pantalla normal muestra los registros sintéticos; carga anuncia que la operación está en proceso; error informa el fallo y ofrece recuperación; y vacío comunica que no existen registros sin tratarlo como una falla.
+
+Los estados pueden reproducirse sin servicios externos:
+
+- `/`: registros sintéticos.
+- `/?estado=carga`: estado de carga.
+- `/?estado=error`: estado de error.
+- `/?estado=vacio`: estado vacío.
+
+Las variantes controladas mediante `estado` son fixtures de verificación con datos sintéticos. No simulan una API o backend implementado.
+
+Next.js también dispone de `src/app/loading.tsx` para cargas del segmento y `src/app/error.tsx` como límite de errores inesperados. El límite de error es un componente cliente y permite reintentar mediante `reset()`.
+
+`tests/inspection-states.spec.ts` confirma que los cuatro estados permanecen implementados, que carga comunica `aria-busy`, que los mensajes dinámicos usan regiones de estado, que los errores usan una alerta y que existe una acción de reintento.
+
+Comandos de verificación:
+
+```bash
+npm test
+npm run test -- --run
+npm run build
+npm run verify
+```
+
+Resultados observados por Javier en el entorno local con Node.js `v20.19.0` y npm `10.8.2`:
+
+- `npm test`: código 0; `starter.spec.mjs`, `manifest.spec.ts` e `inspection-states.spec.ts` terminaron en `PASS`.
+- `npm run test -- --run`: código 0; las mismas tres pruebas terminaron en `PASS` y el argumento adicional fue aceptado.
+- `npm run build`: código 0; Next.js 14.2.35 compiló, validó tipos y generó las cuatro páginas previstas.
+- `npm run verify`: código 0; repitió pruebas y build y concluyó con `Verificación técnica: pass`.
+
+#### Decisiones y límites
+
+Los estados se modelaron de forma explícita para evitar que un arreglo vacío se interprete como error. Las vistas de prueba son deterministas y no dependen de red.
+
+Esta entrega no implementa una API, persistencia local, sincronización ni operación offline. El estado de error reproducible representa un escenario sintético; `error.tsx` cubre los fallos reales que alcancen el límite de Next.js.
