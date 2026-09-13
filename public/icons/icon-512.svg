@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Icono adaptable de inspecciones de laboratorio</title>
+  <rect width="512" height="512" fill="#172b62"/>
+  <circle cx="256" cy="256" r="184" fill="#3156d3"/>
+  <path d="M179 137h154v48H179z" fill="#9fb2ff"/>
+  <rect x="137" y="161" width="238" height="274" rx="43" fill="#fff"/>
+  <path d="M184 241l21 21 45-50" fill="none" stroke="#127443" stroke-linecap="round" stroke-linejoin="round" stroke-width="24"/>
+  <path d="M274 241h53M184 337l21 21 45-50M274 337h53" fill="none" stroke="#3156d3" stroke-linecap="round" stroke-linejoin="round" stroke-width="22"/>
+</svg>
