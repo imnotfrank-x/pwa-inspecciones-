@@ -80,3 +80,16 @@ La persistencia offline y la sincronización no ocurren automáticamente por usa
 
 **Uso de IA:**
 Utilicé IA (Antigravity IDE con modelo Gemini) como asistente de redacción y estructuración analítica para contrastar las alternativas arquitectónicas del ADR y redactar de forma rigurosa los riesgos y validaciones. Ejecuté personalmente los comandos técnicos (`npm ci`, `npm run verify`), verifiqué y registré los resultados reales observados en mi terminal y en `reports/verification.json`, asegurando que ninguna afirmación asumiera funciones offline ya implementadas.
+
+### Incremento personal — Semana 2
+
+- **Commit de mi contribución:** `d4bea1fe28df84a8ec93b102cd18cfa3b4817351`.
+- **Contribución concreta:** Implementé el componente de inspecciones con estados `ready`, `loading`, `error` y `empty`; agregué los límites `loading.tsx` y `error.tsx`; preparé URLs deterministas para reproducir cada estado; y escribí `tests/inspection-states.spec.ts`.
+- **Decisión técnica que puedo explicar:** Separé el estado de la vista de los datos. Un arreglo sin registros produce un estado vacío y no un error, mientras que los fallos tienen una representación propia con una acción de recuperación.
+- **Decisión de accesibilidad que puedo explicar:** La carga comunica `aria-busy` y utiliza una región con `role="status"`; el error usa `role="alert"`; y las acciones de recuperación funcionan mediante enlaces o botones accesibles por teclado.
+- **Prueba que ejecuté:** Ejecuté en mi entorno local, mediante Codex, `npm test`, `npm run test -- --run`, `npm run build` y `npm run verify` con Node.js `v20.19.0` y npm `10.8.2`.
+- **Resultado real observado:** Los dos comandos de prueba terminaron con código 0 y mostraron `PASS` para `starter.spec.mjs`, `manifest.spec.ts` e `inspection-states.spec.ts`. El build de Next.js 14.2.35 compiló, validó tipos y generó cuatro páginas. `npm run verify` concluyó con `Verificación técnica: pass`. En la revisión visual, las cuatro rutas mostraron estados distintos; a 375 px no hubo desplazamiento horizontal y los enlaces mostraron foco visible al usar Tab.
+- **Qué verifica mi prueba:** Confirma la presencia de los cuatro estados, el tratamiento del arreglo vacío, los atributos accesibles, el límite de error y su acción de reintento.
+- **Qué no verifica:** No provoca una caída real de un servidor, no prueba sincronización, no demuestra funcionamiento offline y no sustituye una revisión completa con tecnologías asistivas.
+- **Limitación o fallo diagnosticado:** Los estados reproducibles se seleccionan mediante parámetros sintéticos porque esta semana todavía no existe una API que produzca transiciones reales de red.
+- **Uso declarado de IA:** Utilicé Codex para interpretar la guía, revisar e integrar los cambios en `package.json`, `src/app/page.tsx`, `src/app/globals.css`, `src/components/inspection-list.tsx`, `src/app/loading.tsx`, `src/app/error.tsx` y `tests/inspection-states.spec.ts`, ejecutar las comprobaciones automatizadas y visuales, y redactar esta evidencia. Validé los fragmentos mediante las tres pruebas, el build, `npm run verify` y la inspección de las cuatro rutas; revisaré personalmente el diff y repetiré los comandos antes de la entrega académica.
