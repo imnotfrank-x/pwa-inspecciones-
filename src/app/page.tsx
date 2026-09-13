@@ -1,53 +1,76 @@
+import {
+  InspectionList,
+  type InspectionViewState
+} from "../components/inspection-list";
 import { inspections } from "../lib/data/inspections";
 
-export default function HomePage() {
+type HomePageProps = {
+  searchParams?: {
+    estado?: string | string[];
+  };
+};
+
+function resolveInspectionState(
+  requestedState: string | string[] | undefined
+): InspectionViewState {
+  const state = Array.isArray(requestedState)
+    ? requestedState[0]
+    : requestedState;
+
+  switch (state) {
+    case "carga":
+      return "loading";
+    case "error":
+      return "error";
+    case "vacio":
+      return "empty";
+    default:
+      return "ready";
+  }
+}
+
+export default function HomePage({ searchParams }: HomePageProps) {
+  const state = resolveInspectionState(searchParams?.estado);
+
   return (
     <main className="page-shell">
       <header className="hero">
-        <p className="eyebrow">Proyecto base · Semana 1</p>
+        <p className="eyebrow">Proyecto acumulativo · Semana 2</p>
         <h1>Inspecciones de laboratorio</h1>
         <p className="lead">
-          Registro de mantenimiento para trabajar con conectividad intermitente.
-          Los datos mostrados son sintéticos.
+          Registro de mantenimiento preparado para trabajar con conectividad
+          intermitente. Los datos mostrados son sintéticos.
         </p>
-        <span className="status">Estado del starter: ejecutable · PWA aún no implementada</span>
+        <span className="status">
+          Manifest instalable · estados verificables
+        </span>
       </header>
 
-      <section aria-labelledby="inspections-heading" className="content-section">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Datos de demostración</p>
-            <h2 id="inspections-heading">Inspecciones recientes</h2>
-          </div>
-          <span className="count">{inspections.length} registros</span>
-        </div>
+      <InspectionList inspections={inspections} state={state} />
 
-        <div className="inspection-grid">
-          {inspections.map((inspection) => (
-            <article className="inspection-card" key={inspection.id}>
-              <div className="card-topline">
-                <span className={`badge badge-${inspection.status}`}>{inspection.statusLabel}</span>
-                <span className="muted">{inspection.date}</span>
-              </div>
-              <h3>{inspection.location}</h3>
-              <p>{inspection.summary}</p>
-              <dl>
-                <div>
-                  <dt>Responsable</dt>
-                  <dd>{inspection.inspector}</dd>
-                </div>
-                <div>
-                  <dt>Hallazgos</dt>
-                  <dd>{inspection.findings}</dd>
-                </div>
-              </dl>
-            </article>
-          ))}
-        </div>
-      </section>
+      <aside
+        aria-labelledby="state-verification-heading"
+        className="state-verification"
+      >
+        <h2 id="state-verification-heading">
+          Verificación reproducible de estados
+        </h2>
+        <p>
+          Estas vistas utilizan únicamente datos sintéticos y permiten comprobar
+          cada estado sin depender de servicios externos.
+        </p>
+        <nav aria-label="Vistas de verificación">
+          <a href="/">Registros</a>
+          <a href="/?estado=carga">Carga</a>
+          <a href="/?estado=error">Error</a>
+          <a href="/?estado=vacio">Vacío</a>
+        </nav>
+      </aside>
 
       <footer className="footer">
-        <p>Aplicaciones Web Progresivas · Universidad Tecnológica de Tehuacán</p>
+        <p>
+          Aplicaciones Web Progresivas · Universidad Tecnológica de Tehuacán
+        </p>
       </footer>
     </main>
   );
