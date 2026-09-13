@@ -30,28 +30,36 @@
 ### Carlos
 
 **Contribución concreta:**
-Completé el documento `docs/requirements.md`, definiendo el problema y contexto del producto, los usuarios y escenarios ESC-01 y ESC-02, los requisitos funcionales y no funcionales, los datos sintéticos y los criterios de aceptación de la Semana 1. El cambio quedó registrado en el commit [`7ec356120d9a3b4069d881ce2523cbe86e51a331`](https://github.com/imnotfrank-x/pwa-inspecciones-/commit/7ec356120d9a3b4069d881ce2523cbe86e51a331).
+
+Completé el documento `docs/requirements.md`, definiendo el problema y contexto del producto, los usuarios y escenarios ESC-01 y ESC-02, los requisitos funcionales y no funcionales, los datos sintéticos y los criterios de aceptación de la Semana 1. El cambio quedó registrado en el commit `7ec356120d9a3b4069d881ce2523cbe86e51a331`.
 
 **Decisión que puedo explicar:**
+
 Decidí diferenciar las funciones disponibles durante la Semana 1 de las capacidades futuras. La conservación local y la sincronización de registros se documentaron como requisitos futuros debido a que la actividad indica que todavía no deben implementarse las funciones offline.
 
-**Comando ejecutado personalmente:**
-Ejecuté `npm ci` y posteriormente `npm test` desde la carpeta que contiene `package.json`.
+**Comando o prueba proporcionada que ejecuté personalmente:**
 
-**Resultado real:**
-`npm ci` terminó correctamente, instalando 28 paquetes y auditando 29 paquetes. Durante la auditoría se reportaron 2 vulnerabilidades de severidad alta. Después ejecuté `npm test` y obtuve el resultado `starter.spec.mjs: PASS`.
+Ejecuté `npm run verify` desde la carpeta que contiene `package.json`.
 
-**Qué verifica la prueba:**
-La ejecución de `npm test` verifica que las pruebas proporcionadas por el starter se ejecutan correctamente y que la prueba indicada terminó con resultado `PASS`.
+**Resultado real que observé:**
+
+`npm run verify` terminó correctamente. La prueba proporcionada `starter.spec.mjs` obtuvo `PASS`. Posteriormente se ejecutó el build de producción con Next.js 14.2.35, el cual compiló correctamente, realizó la comprobación de tipos y generó las cuatro páginas estáticas. Finalmente, el proceso mostró `Verificación técnica: pass` y generó `reports/verification.json`.
+
+**Qué verifica esa prueba:**
+
+`npm run verify` comprueba la estructura requerida, ejecuta la prueba proporcionada por el starter, realiza el build de producción y genera `reports/verification.json`. En esta ejecución se comprobó que la prueba terminó en `PASS` y que el proyecto puede compilarse correctamente en el entorno utilizado.
 
 **Qué no verifica:**
-Esta prueba no demuestra por sí sola que todos los requisitos documentados estén implementados, ni valida la calidad del análisis de requisitos, la accesibilidad, la privacidad o las funcionalidades offline futuras.
+
+Esta ejecución no demuestra por sí sola que todos los requisitos documentados estén implementados, ni valida la calidad del análisis de requisitos, la accesibilidad, la privacidad o las funcionalidades offline futuras. Tampoco constituye una certificación de ausencia de secretos.
 
 **Limitación o riesgo identificado:**
-Durante `npm ci` se reportaron 2 vulnerabilidades de severidad alta en las dependencias instaladas. No ejecuté `npm audit fix --force` porque podría introducir cambios incompatibles en las dependencias del proyecto.
+
+Una limitación de esta verificación es que un resultado técnico `pass` no garantiza que los requisitos futuros, como almacenamiento offline y sincronización, estén implementados. Esas capacidades se documentan para semanas posteriores y requieren validaciones específicas cuando sean desarrolladas.
 
 **Uso de IA:**
-Utilicé IA como apoyo para estructurar y redactar el documento de requisitos. La ejecución de los comandos y el resultado reportado de `npm test` fueron realizados personalmente y corresponden al resultado observado en mi entorno.
+
+Utilicé IA como apoyo para estructurar y redactar el documento de requisitos y para revisar la interpretación de las instrucciones de la actividad. La ejecución de `npm run verify`, así como la comprobación del resultado mostrado en la terminal, fueron realizadas personalmente y corresponden al resultado observado en mi entorno.
 
 
 ## Integrante: Hernandez Mendez Javier — 3523110052
