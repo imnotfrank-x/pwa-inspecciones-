@@ -1,0 +1,54 @@
+name: Semana 2 — shell y manifest
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalación reproducible
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Verificar artefactos de Semana 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f public/manifest.webmanifest
+          test -f src/app/layout.tsx
+          test -f src/app/page.tsx
+          test -f src/components/app-shell.tsx
+          test -f tests/manifest.spec.ts
+          test -f tests/inspection-states.spec.ts
+          test -f tests/app-shell.spec.ts
+          test -f README.md
+          test -f evidence/individual.md
+
+      - name: Pruebas automatizadas
+        run: npm test -- --run
+
+      - name: Verificación técnica y build
+        run: npm run verify
+
+      - name: Guardar evidencia técnica
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: academic-evidence-w02-shell-manifest
+          if-no-files-found: error
+          path: reports/verification.json
