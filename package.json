@@ -2,11 +2,15 @@
   "name": "pwa-inspecciones-laboratorio",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.19.0 <21",
+    "npm": ">=10"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node tests/starter.spec.mjs",
+    "test": "node tests/starter.spec.mjs && node tests/manifest.spec.ts && node tests/inspection-states.spec.ts && node tests/app-shell.spec.ts",
     "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
