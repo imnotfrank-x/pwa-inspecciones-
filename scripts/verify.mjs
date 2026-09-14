@@ -33,10 +33,10 @@ const result = {
   runtime: { node: process.version },
   status: checks.every(c => c.status === "pass") ? "pass" : "fail",
   checks,
-  academicReview: { status: "pending", message: "Sin calificaciÃ³n automÃ¡tica. Revisar requisitos, decisiÃ³n y evidencia por integrante con la rÃºbrica; existencia no implica calidad.", documents },
-  limits: ["La instalaciÃ³n se verifica mediante npm ci por separado.", "No certifica ausencia de secretos.", "Las pruebas proporcionadas no cubren toda la aplicaciÃ³n."]
+  academicReview: { status: "pending", message: "Sin calificación automática. Revisar requisitos, decisión y evidencia por integrante con la rúbrica; existencia no implica calidad.", documents },
+  limits: ["La instalación se verifica mediante npm ci por separado.", "No certifica ausencia de secretos.", "Las pruebas proporcionadas no cubren toda la aplicación."]
 };
 mkdirSync(resolve(root, "reports"), { recursive: true });
 writeFileSync(resolve(root, "reports/verification.json"), JSON.stringify(result, null, 2) + "\n");
-console.log(`\nVerificaciÃ³n tÃ©cnica: ${result.status}. RevisiÃ³n acadÃ©mica: pendiente. Reporte: reports/verification.json`);
+console.log(`\nVerificación técnica: ${result.status}. Revisión académica: pendiente. Reporte: reports/verification.json`);
 process.exit(result.status === "pass" ? 0 : 1);

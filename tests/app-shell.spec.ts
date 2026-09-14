@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 {
   const assert = require("node:assert/strict");
   const { readFileSync } = require("node:fs");
