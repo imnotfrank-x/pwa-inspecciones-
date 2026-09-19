@@ -179,3 +179,21 @@ Resultados observados:
 La comprobación automatizada valida la estructura semántica mediante invariantes del código y el build valida TypeScript y React. Esto no sustituye una auditoría completa con lector de pantalla o herramientas especializadas.
 
 La navegación utiliza rutas y fragmentos existentes. No agrega páginas nuevas, autenticación, funcionamiento offline ni sincronización.
+
+## Incremento de la Semana 3
+
+### Registro y actualización controlada del Service Worker
+
+`src/components/service-worker-registration.tsx` registra `/sw.js` desde un efecto de React ejecutado únicamente en el navegador. El componente cliente se monta desde el layout, devuelve `null` y no bloquea el renderizado inicial de la aplicación.
+
+La lógica de `src/lib/pwa/register-service-worker.ts` comprueba primero que el navegador sea compatible y registra el worker con alcance `/`. Si el registro falla, devuelve `null` y comunica el error mediante un callback opcional sin impedir que la interfaz continúe funcionando.
+
+Una actualización se reconoce cuando ya existe `registration.waiting` o cuando `updatefound` produce un worker que alcanza el estado `installed` mientras la página ya está controlada. Esta última condición evita presentar la primera instalación como si fuera una actualización.
+
+El worker nuevo permanece en espera. No se ejecuta `skipWaiting()` automáticamente: `activateWaitingServiceWorker()` debe recibir una decisión explícita de otra parte de la interfaz y entonces envía exactamente `{ type: "SKIP_WAITING" }`. Este incremento proporciona esa API de control, pero todavía no incorpora una acción visual para el usuario.
+
+Después de una activación autorizada, el componente escucha `controllerchange`. La primera toma de control se registra sin recargar la página; los cambios posteriores recargan una sola vez mediante referencias persistentes y el listener se elimina al desmontar el componente.
+
+`tests/service-worker.spec.ts` verifica el registro desde React y ejecuta `public/sw.js` en un contexto simulado para comprobar los eventos del ciclo de vida, la precarga, la propagación de errores de `cache.addAll`, la limpieza selectiva de cachés, el mensaje `SKIP_WAITING` y la exclusión de peticiones distintas de GET.
+
+La comprobación offline completa queda pendiente hasta integrar el fallback de Carlos. En esta rama todavía no existe `public/offline.html`; por ello la precarga real debe fallar de forma segura y no se afirma que la aplicación ya funcione sin conexión.
