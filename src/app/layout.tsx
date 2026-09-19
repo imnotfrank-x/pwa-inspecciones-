@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { AppShell } from "../components/app-shell";
+import { ServiceWorkerRegistration } from "../components/service-worker-registration";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="es-MX">
       <body>
+        <ServiceWorkerRegistration />
         <AppShell>{children}</AppShell>
       </body>
     </html>
