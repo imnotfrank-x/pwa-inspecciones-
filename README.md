@@ -196,4 +196,24 @@ Después de una activación autorizada, el componente escucha `controllerchange`
 
 `tests/service-worker.spec.ts` verifica el registro desde React y ejecuta `public/sw.js` en un contexto simulado para comprobar los eventos del ciclo de vida, la precarga, la propagación de errores de `cache.addAll`, la limpieza selectiva de cachés, el mensaje `SKIP_WAITING` y la exclusión de peticiones distintas de GET.
 
-La comprobación offline completa queda pendiente hasta integrar el fallback de Carlos. En esta rama todavía no existe `public/offline.html`; por ello la precarga real debe fallar de forma segura y no se afirma que la aplicación ya funcione sin conexión.
+### Consulta offline y estrategia de caché
+
+La Semana 3 incorpora una estrategia de caché para mantener una experiencia básica cuando el dispositivo pierde la conexión.
+
+El Service Worker existente utiliza `Network First` para las navegaciones y `Cache First` para los recursos estáticos. Cuando una navegación no puede resolverse mediante la red ni mediante una respuesta almacenada, se utiliza `/offline.html` como fallback final.
+
+La página `public/offline.html` es autónoma y no depende de recursos externos. Muestra un mensaje indicando que el dispositivo está sin conexión y permite volver a intentar la navegación hacia `/`.
+
+Las solicitudes que pueden contener información sensible no se almacenan en caché. Se excluyen las peticiones que no utilizan `GET`, las rutas `/api/`, otros orígenes, las solicitudes con `Authorization` y los parámetros `token`, `password`, `secret` o `api_key`.
+
+La estrategia queda documentada en `docs/cache-strategy.md`.
+
+La prueba reproducible `tests/offline.spec.ts` comprueba la existencia del fallback, la estrategia `Network First`, la recuperación desde caché sin conexión, el fallback final hacia `/offline.html`, la estrategia `Cache First` para recursos estáticos y la exclusión de solicitudes que no deben interceptarse.
+
+La prueba puede ejecutarse directamente con:
+
+```bash
+node tests/offline.spec.ts
+```
+
+y también forma parte del comando `npm test`.
