@@ -4,9 +4,9 @@ Este directorio contiene comprobaciones públicas de estructura para la entrega 
 
 ## Objetivo
 
-El script `check.sh` verifica que permanezcan disponibles los archivos requeridos de las semanas anteriores y los artefactos incorporados durante la Semana 3.
+El script `check.sh` ejecuta la comprobación estructural acumulativa y verifica que permanezcan disponibles los archivos requeridos de las semanas anteriores y los artefactos incorporados durante la Semana 3.
 
-La comprobación no sustituye las pruebas funcionales del proyecto ni asigna una calificación.
+La comprobación no sustituye `npm test`, el build ni la revisión documental. Tampoco certifica automáticamente la ausencia de secretos.
 
 ## Ejecución
 
