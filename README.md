@@ -215,3 +215,23 @@ La prueba puede ejecutarse directamente con:
 
 ```bash
 node tests/offline.spec.ts
+```
+
+### Verificación de la Semana 3
+
+```bash
+npm ci
+npm run test -- --run
+npm run build
+npm run verify
+bash public-tests/check.sh
+```
+
+Resultados observados:
+
+* Las seis pruebas terminaron en `PASS`.
+* El build de Next.js terminó correctamente.
+* `npm run verify` terminó con `Verificación técnica: pass`.
+* El check público terminó con `PUBLIC_OK`.
+
+La prueba automatizada simula el Service Worker. La comprobación manual usando DevTools y el modo Network Offline queda pendiente, si todavía no se realizó.
