@@ -25,6 +25,16 @@
 - **Limitación o fallo diagnosticado:** El manifest y los iconos describen la experiencia instalable, pero no proporcionan caché offline. Esa capacidad requerirá un Service Worker en un incremento posterior. Una ejecución preliminar con el runtime interno de Codex mostró advertencias de caché de webpack; la repetición con Node.js 20.19.0 terminó correctamente y sin esas advertencias.
 - **Uso declarado de IA:** Utilicé Codex para analizar el contrato, revisar la compatibilidad con Node.js 20.19.0, completar la implementación, generar los PNG a partir del diseño SVG y ejecutar una verificación reproducible. Revisaré los cambios y repetiré personalmente los comandos antes de entregar para confirmar que puedo explicar y modificar cada decisión.
 
+### Incremento personal — Semana 3
+
+- **Commit de mi contribución:** [`1cb006149bb67b8d8b131dfd3feb8b92d5d92f7c`](https://github.com/imnotfrank-x/pwa-inspecciones-/commit/1cb006149bb67b8d8b131dfd3feb8b92d5d92f7c).
+- **Contribución concreta:** Implementé `public/sw.js` con cachés de precache y runtime versionadas, precache de los recursos indispensables, limpieza selectiva de versiones anteriores, estrategia Network First para navegaciones, Cache First para recursos estáticos conocidos y recuperación mediante la página principal o el fallback offline. Excluí métodos distintos de GET, otros orígenes, rutas de API, solicitudes con autorización y parámetros sensibles. También incorporé la activación explícita de una actualización mediante el mensaje `SKIP_WAITING`.
+- **Decisión técnica que puedo explicar:** El evento `install` no captura ni oculta un fallo de `cache.addAll`. Si un recurso indispensable no puede almacenarse, la instalación de la versión nueva falla y el worker anterior permanece disponible. La limpieza ocurre después, durante `activate`, y elimina únicamente cachés antiguas con el prefijo `labinspect-`, por lo que no borra almacenamiento perteneciente a otra aplicación.
+- **Prueba ejecutada y resultado:** Se ejecutaron `node --check public/sw.js`, una comprobación temporal con `node:vm`, `npm test` y `npm run build` usando Node.js `v20.19.0` y npm `10.8.2`. La comprobación temporal confirmó el registro de `install`, `activate`, `fetch` y `message`, el rechazo de un precache fallido, la limpieza selectiva y la activación exclusiva mediante `SKIP_WAITING`. Las cuatro pruebas acumuladas terminaron en `PASS` y el build de Next.js 14.2.35 compiló y validó tipos correctamente.
+- **Limitación o fallo diagnosticado:** Esta contribución define el contrato con `/offline.html`, pero el recurso será incorporado por la parte de fallback del equipo. El Service Worker tampoco quedará registrado desde React hasta integrar `src/lib/pwa/register-service-worker.ts`. Por ello, la prueba manual completa con DevTools y Network Offline debe realizarse después de integrar las tres contribuciones.
+- **Cambio que puedo defender o modificar en vivo:** Puedo incrementar `CACHE_VERSION`, explicar por qué las cachés activas se conservan y las anteriores se eliminan, y cambiar una ruta entre Network First y Cache First justificando el efecto sobre disponibilidad y vigencia de los datos.
+- **Uso declarado de IA:** Utilicé Codex para interpretar el contrato de la actividad, proponer la estrategia, implementar y revisar `public/sw.js` y ejecutar las comprobaciones indicadas. La validación fue reproducible con Node.js 20.19.0; revisaré personalmente el diff, repetiré los comandos y comprobaré el comportamiento en DevTools antes de la entrega final.
+
 ## Integrante: Hernández Camacho Carlos Eduardo — 3515110194
 
 ### Carlos
@@ -84,6 +94,32 @@ Utilicé IA como apoyo para estructurar y redactar el documento de requisitos y 
 
 * **Uso declarado de IA:** Utilicé Codex como apoyo para interpretar la guía de la actividad, revisar y estructurar la implementación del App Shell y apoyar la revisión de los cambios. Validé personalmente la implementación mediante las pruebas automatizadas, el build, `npm run verify` y las comprobaciones manuales de navegación, Skip link, estados y vista responsive.
 
+### Incremento personal — Semana 3
+
+* **Commit de mi contribución:** `4f94b80fdbf14992f2822bf5cdfade5b5e4646cd`.
+
+* **Contribución concreta:** Implementé la parte de comportamiento offline del incremento. Incorporé `public/offline.html` como página de respaldo cuando no existe conexión, creé `tests/offline.spec.ts` para comprobar de forma reproducible el comportamiento offline, documenté la estrategia de caché en `docs/cache-strategy.md` y agregué la prueba offline al comando `npm test`.
+
+* **Decisión técnica que puedo explicar:** Las navegaciones utilizan **Network First**, intentando primero obtener contenido de la red y recurriendo al caché cuando no hay conexión. Los recursos estáticos utilizan **Cache First**, priorizando la disponibilidad local. Para una navegación sin conexión se contempla la recuperación mediante la URL solicitada, la página principal `/` y finalmente `/offline.html`.
+
+* **Decisión de seguridad que puedo explicar:** La estrategia excluye solicitudes a `/api/`, solicitudes de otros orígenes, solicitudes con encabezado `Authorization` y consultas que contienen parámetros potencialmente sensibles como `api_key`, `token`, `password` y `secret`.
+
+* **Contribución de prueba:** `tests/offline.spec.ts` comprueba el fallback, la estrategia `Network First`, la recuperación desde caché, el uso de `/offline.html`, la estrategia `Cache First` y la exclusión de solicitudes sensibles o no compatibles.
+
+* **Prueba ejecutada personalmente:** Ejecuté `node tests/offline.spec.ts`, `npm test`, `npm run build`, `npm run verify` y `bash public-tests/check.sh`.
+
+* **Resultado real observado:** `node tests/offline.spec.ts` terminó con `offline.spec.ts: PASS`. `npm test` terminó con las seis pruebas en `PASS`. `npm run build` compiló correctamente. `npm run verify` terminó con `Verificación técnica: pass`. `bash public-tests/check.sh` terminó con `PUBLIC_OK`.
+
+* **Qué verifica mi prueba:** Comprueba que `public/offline.html` exista, que el Service Worker utilice `/offline.html`, que las navegaciones puedan recuperarse desde caché cuando no existe conexión, que exista un fallback final y que los recursos estáticos utilicen Cache First. También comprueba que no se intercepten solicitudes `POST`, rutas `/api/`, otros orígenes ni solicitudes con credenciales o parámetros sensibles.
+
+* **Qué no verifica:** La prueba no sustituye una prueba manual completa en un navegador real con DevTools y Network Offline. Tampoco demuestra sincronización de datos, persistencia mediante IndexedDB ni funcionamiento de un backend real.
+
+* **Limitación o dificultad identificada:** La primera visita requiere conexión y el navegador puede eliminar la caché según sus políticas de almacenamiento. La actividad permite consulta offline, pero todavía no permite crear o sincronizar inspecciones sin conexión.
+
+* **Documentación incorporada:** Actualicé `README.md`, `docs/cache-strategy.md` y `public-tests/check.sh` para registrar el comportamiento offline, la estrategia de caché y los artefactos acumulativos de la Semana 3.
+
+* **Uso declarado de IA:** Utilicé IA como apoyo para interpretar la guía de la Semana 3, estructurar las pruebas y revisar los cambios. La creación de los archivos, la ejecución de las pruebas y la comprobación de los resultados se realizaron en mi entorno local, y puedo explicar las decisiones técnicas registradas en esta evidencia.
+
 
 ## Integrante: Hernandez Mendez Javier — 3523110052
 
@@ -124,3 +160,13 @@ Utilicé IA (Antigravity IDE con modelo Gemini) como asistente de redacción y e
 - **Qué no verifica:** No provoca una caída real de un servidor, no prueba sincronización, no demuestra funcionamiento offline y no sustituye una revisión completa con tecnologías asistivas.
 - **Limitación o fallo diagnosticado:** Los estados reproducibles se seleccionan mediante parámetros sintéticos porque esta semana todavía no existe una API que produzca transiciones reales de red.
 - **Uso declarado de IA:** Utilicé Codex para interpretar la guía, revisar e integrar los cambios en `package.json`, `src/app/page.tsx`, `src/app/globals.css`, `src/components/inspection-list.tsx`, `src/app/loading.tsx`, `src/app/error.tsx` y `tests/inspection-states.spec.ts`, ejecutar las comprobaciones automatizadas y visuales, y redactar esta evidencia. Validé los fragmentos mediante las tres pruebas, el build, `npm run verify` y la inspección de las cuatro rutas; revisaré personalmente el diff y repetiré los comandos antes de la entrega académica.
+
+### Incremento personal — Semana 3
+
+- **Commit de mi contribución:** [`4d0dcd0a23a1926044beabcf8dbbd12afd7eeff0`](https://github.com/imnotfrank-x/pwa-inspecciones-/commit/4d0dcd0a23a1926044beabcf8dbbd12afd7eeff0).
+- **Contribución concreta:** Implementé el registro de `/sw.js` desde un componente cliente no visual, integré ese componente en el layout, detecté workers instalados o en espera y agregué una función para activar de forma explícita una actualización mediante el mensaje `SKIP_WAITING`. El listener de `controllerchange` evita recargar durante la primera toma de control y limita las actualizaciones posteriores a una sola recarga.
+- **Decisión técnica que puedo explicar:** No activo automáticamente un worker en espera porque sustituir los recursos mientras el usuario conserva abierta la versión anterior puede mezclar versiones de la interfaz. `activateWaitingServiceWorker()` requiere una decisión explícita antes de enviar `SKIP_WAITING`.
+- **Prueba ejecutada y resultado:** Con Node.js `v20.19.0` y npm `10.8.2` ejecuté `npm test`, `npm run test -- --run` y `npm run build`. Las cinco pruebas acumuladas terminaron en `PASS` en ambas variantes y el build de Next.js 14.2.35 compiló, validó tipos y generó cuatro páginas correctamente.
+- **Limitación o fallo diagnosticado:** Todavía falta integrar `public/offline.html`. Como `public/sw.js` utiliza `cache.addAll` para precargarlo, la instalación real del worker falla de forma intencional mientras ese recurso no exista; por ello aún no se afirma que la prueba offline completa haya pasado.
+- **Cambio que puedo defender o modificar en vivo:** Puedo modificar el callback que anuncia una actualización, explicar la diferencia entre la instalación inicial y un worker en espera, o cambiar el control que evita recargas repetidas después de `controllerchange`.
+- **Uso declarado de IA:** Utilicé Codex para interpretar las instrucciones, implementar y revisar `src/lib/pwa/register-service-worker.ts`, `src/components/service-worker-registration.tsx`, `src/app/layout.tsx`, `tests/service-worker.spec.ts`, `package.json` y `README.md`, ejecutar las comprobaciones reproducibles y redactar esta evidencia. Validé el resultado mediante las cinco pruebas, el argumento adicional del evaluador, la comprobación de tipos y el build; revisaré personalmente el diff y repetiré los comandos antes de la entrega académica.

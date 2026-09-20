@@ -179,3 +179,58 @@ Resultados observados:
 La comprobación automatizada valida la estructura semántica mediante invariantes del código y el build valida TypeScript y React. Esto no sustituye una auditoría completa con lector de pantalla o herramientas especializadas.
 
 La navegación utiliza rutas y fragmentos existentes. No agrega páginas nuevas, autenticación, funcionamiento offline ni sincronización.
+
+## Incremento de la Semana 3
+
+### Registro y actualización controlada del Service Worker
+
+`src/components/service-worker-registration.tsx` registra `/sw.js` desde un efecto de React ejecutado únicamente en el navegador. El componente cliente se monta desde el layout, devuelve `null` y no bloquea el renderizado inicial de la aplicación.
+
+La lógica de `src/lib/pwa/register-service-worker.ts` comprueba primero que el navegador sea compatible y registra el worker con alcance `/`. Si el registro falla, devuelve `null` y comunica el error mediante un callback opcional sin impedir que la interfaz continúe funcionando.
+
+Una actualización se reconoce cuando ya existe `registration.waiting` o cuando `updatefound` produce un worker que alcanza el estado `installed` mientras la página ya está controlada. Esta última condición evita presentar la primera instalación como si fuera una actualización.
+
+El worker nuevo permanece en espera. No se ejecuta `skipWaiting()` automáticamente: `activateWaitingServiceWorker()` debe recibir una decisión explícita de otra parte de la interfaz y entonces envía exactamente `{ type: "SKIP_WAITING" }`. Este incremento proporciona esa API de control, pero todavía no incorpora una acción visual para el usuario.
+
+Después de una activación autorizada, el componente escucha `controllerchange`. La primera toma de control se registra sin recargar la página; los cambios posteriores recargan una sola vez mediante referencias persistentes y el listener se elimina al desmontar el componente.
+
+`tests/service-worker.spec.ts` verifica el registro desde React y ejecuta `public/sw.js` en un contexto simulado para comprobar los eventos del ciclo de vida, la precarga, la propagación de errores de `cache.addAll`, la limpieza selectiva de cachés, el mensaje `SKIP_WAITING` y la exclusión de peticiones distintas de GET.
+
+### Consulta offline y estrategia de caché
+
+La Semana 3 incorpora una estrategia de caché para mantener una experiencia básica cuando el dispositivo pierde la conexión.
+
+El Service Worker existente utiliza `Network First` para las navegaciones y `Cache First` para los recursos estáticos. Cuando una navegación no puede resolverse mediante la red ni mediante una respuesta almacenada, se utiliza `/offline.html` como fallback final.
+
+La página `public/offline.html` es autónoma y no depende de recursos externos. Muestra un mensaje indicando que el dispositivo está sin conexión y permite volver a intentar la navegación hacia `/`.
+
+Las solicitudes que pueden contener información sensible no se almacenan en caché. Se excluyen las peticiones que no utilizan `GET`, las rutas `/api/`, otros orígenes, las solicitudes con `Authorization` y los parámetros `token`, `password`, `secret` o `api_key`.
+
+La estrategia queda documentada en `docs/cache-strategy.md`.
+
+La prueba reproducible `tests/offline.spec.ts` comprueba la existencia del fallback, la estrategia `Network First`, la recuperación desde caché sin conexión, el fallback final hacia `/offline.html`, la estrategia `Cache First` para recursos estáticos y la exclusión de solicitudes que no deben interceptarse.
+
+La prueba puede ejecutarse directamente con:
+
+```bash
+node tests/offline.spec.ts
+```
+
+### Verificación de la Semana 3
+
+```bash
+npm ci
+npm run test -- --run
+npm run build
+npm run verify
+bash public-tests/check.sh
+```
+
+Resultados observados:
+
+* Las seis pruebas terminaron en `PASS`.
+* El build de Next.js terminó correctamente.
+* `npm run verify` terminó con `Verificación técnica: pass`.
+* El check público terminó con `PUBLIC_OK`.
+
+La prueba automatizada simula el Service Worker. La comprobación manual usando DevTools y el modo Network Offline queda pendiente, si todavía no se realizó.
