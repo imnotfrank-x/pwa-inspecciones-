@@ -94,6 +94,32 @@ Utilicé IA como apoyo para estructurar y redactar el documento de requisitos y 
 
 * **Uso declarado de IA:** Utilicé Codex como apoyo para interpretar la guía de la actividad, revisar y estructurar la implementación del App Shell y apoyar la revisión de los cambios. Validé personalmente la implementación mediante las pruebas automatizadas, el build, `npm run verify` y las comprobaciones manuales de navegación, Skip link, estados y vista responsive.
 
+### Incremento personal — Semana 3
+
+* **Commit de mi contribución:** `4f94b80fdbf14992f2822bf5cdfade5b5e4646cd`.
+
+* **Contribución concreta:** Implementé la parte de comportamiento offline del incremento. Incorporé `public/offline.html` como página de respaldo cuando no existe conexión, creé `tests/offline.spec.ts` para comprobar de forma reproducible el comportamiento offline, documenté la estrategia de caché en `docs/cache-strategy.md` y agregué la prueba offline al comando `npm test`.
+
+* **Decisión técnica que puedo explicar:** Las navegaciones utilizan **Network First**, intentando primero obtener contenido de la red y recurriendo al caché cuando no hay conexión. Los recursos estáticos utilizan **Cache First**, priorizando la disponibilidad local. Para una navegación sin conexión se contempla la recuperación mediante la URL solicitada, la página principal `/` y finalmente `/offline.html`.
+
+* **Decisión de seguridad que puedo explicar:** La estrategia excluye solicitudes a `/api/`, solicitudes de otros orígenes, solicitudes con encabezado `Authorization` y consultas que contienen parámetros potencialmente sensibles como `api_key`, `token`, `password` y `secret`.
+
+* **Contribución de prueba:** `tests/offline.spec.ts` comprueba el fallback, la estrategia `Network First`, la recuperación desde caché, el uso de `/offline.html`, la estrategia `Cache First` y la exclusión de solicitudes sensibles o no compatibles.
+
+* **Prueba ejecutada personalmente:** Ejecuté `node tests/offline.spec.ts`, `npm test`, `npm run build`, `npm run verify` y `bash public-tests/check.sh`.
+
+* **Resultado real observado:** `node tests/offline.spec.ts` terminó con `offline.spec.ts: PASS`. `npm test` terminó con las seis pruebas en `PASS`. `npm run build` compiló correctamente. `npm run verify` terminó con `Verificación técnica: pass`. `bash public-tests/check.sh` terminó con `PUBLIC_OK`.
+
+* **Qué verifica mi prueba:** Comprueba que `public/offline.html` exista, que el Service Worker utilice `/offline.html`, que las navegaciones puedan recuperarse desde caché cuando no existe conexión, que exista un fallback final y que los recursos estáticos utilicen Cache First. También comprueba que no se intercepten solicitudes `POST`, rutas `/api/`, otros orígenes ni solicitudes con credenciales o parámetros sensibles.
+
+* **Qué no verifica:** La prueba no sustituye una prueba manual completa en un navegador real con DevTools y Network Offline. Tampoco demuestra sincronización de datos, persistencia mediante IndexedDB ni funcionamiento de un backend real.
+
+* **Limitación o dificultad identificada:** La primera visita requiere conexión y el navegador puede eliminar la caché según sus políticas de almacenamiento. La actividad permite consulta offline, pero todavía no permite crear o sincronizar inspecciones sin conexión.
+
+* **Documentación incorporada:** Actualicé `README.md`, `docs/cache-strategy.md` y `public-tests/check.sh` para registrar el comportamiento offline, la estrategia de caché y los artefactos acumulativos de la Semana 3.
+
+* **Uso declarado de IA:** Utilicé IA como apoyo para interpretar la guía de la Semana 3, estructurar las pruebas y revisar los cambios. La creación de los archivos, la ejecución de las pruebas y la comprobación de los resultados se realizaron en mi entorno local, y puedo explicar las decisiones técnicas registradas en esta evidencia.
+
 
 ## Integrante: Hernandez Mendez Javier — 3523110052
 
