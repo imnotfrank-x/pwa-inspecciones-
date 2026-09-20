@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
 
 echo "Verificando estructura acumulativa..."
+
+node scripts/verify.mjs --structure
 
 required_files=(
   "package.json"
@@ -12,6 +13,7 @@ required_files=(
   "ACTIVIDAD-01.md"
   "docs/requirements.md"
   "docs/decision-record.md"
+  "docs/cache-strategy.md"
   "evidence/individual.md"
   "public/manifest.webmanifest"
   "public/sw.js"
@@ -19,7 +21,6 @@ required_files=(
   "src/lib/pwa/register-service-worker.ts"
   "tests/service-worker.spec.ts"
   "tests/offline.spec.ts"
-  "docs/cache-strategy.md"
 )
 
 for file in "${required_files[@]}"; do
@@ -32,5 +33,4 @@ for file in "${required_files[@]}"; do
 done
 
 echo "Estructura acumulativa correcta."
-
 echo "PUBLIC_OK"

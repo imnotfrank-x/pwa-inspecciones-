@@ -57,6 +57,12 @@ assert.doesNotMatch(
   "offline.html no debe depender de recursos externos"
 );
 
+assert.doesNotMatch(
+  offlineHtml,
+  /```/,
+  "offline.html no debe contener marcas de Markdown"
+);
+
 assert.match(
   serviceWorker,
   /const OFFLINE_FALLBACK_URL = "\/offline\.html"/,
@@ -74,6 +80,7 @@ const cacheStore = new Map();
 const fetchCalls = [];
 
 let respondWithCalls = 0;
+let rejectPrecache = false;
 
 let fetchBehavior = async () => {
   throw new Error("fetch no configurado");
@@ -90,6 +97,10 @@ function getCacheKey(request) {
 function createCache() {
   return {
     async addAll(urls) {
+      if (rejectPrecache) {
+        throw new Error("fallo de precarga simulado");
+      }
+
       for (const url of urls) {
         cacheStore.set(url, createResponse(`precached:${url}`));
       }
@@ -166,6 +177,23 @@ for (const eventName of ["install", "activate", "fetch", "message"]) {
   );
 }
 
+async function dispatchWaitUntil(eventName) {
+  let operation;
+
+  listeners.get(eventName)({
+    waitUntil(promise) {
+      operation = Promise.resolve(promise);
+    }
+  });
+
+  assert.ok(
+    operation,
+    `${eventName} debe utilizar waitUntil`
+  );
+
+  await operation;
+}
+
 async function dispatchFetch(request) {
   let responsePromise;
 
@@ -217,12 +245,26 @@ async function expectNotIntercepted(request) {
 }
 
 async function main() {
-  await listeners.get("install")({
-    waitUntil(promise) {
-      return promise;
-    }
-  });
+  cacheStore.clear();
+  rejectPrecache = false;
 
+  await dispatchWaitUntil("install");
+
+  assert.ok(
+    cacheStore.has("/offline.html"),
+    "La instalación debe precargar /offline.html"
+  );
+
+  cacheStore.clear();
+  rejectPrecache = true;
+
+  await assert.rejects(
+    () => dispatchWaitUntil("install"),
+    /fallo de precarga simulado/,
+    "La instalación debe propagar un fallo de precarga"
+  );
+
+  rejectPrecache = false;
   cacheStore.clear();
 
   let networkResponse = createResponse("respuesta-de-red");
@@ -335,6 +377,31 @@ async function main() {
     fetchCalls.length,
     networkCallsBeforeStatic,
     "Cache First no debe consultar la red cuando el recurso ya está almacenado"
+  );
+
+  cacheStore.delete(
+    "https://labinspect.test/_next/static/chunks/missing.js"
+  );
+
+  fetchBehavior = async () =>
+    createResponse("recurso-estatico-desde-red");
+
+  const missingStaticRequest = createRequest(
+    "https://labinspect.test/_next/static/chunks/missing.js"
+  );
+
+  const missingStaticResponse =
+    await expectIntercepted(missingStaticRequest);
+
+  assert.equal(
+    missingStaticResponse.body,
+    "recurso-estatico-desde-red",
+    "Si un recurso estático no está en caché, debe consultarse la red"
+  );
+
+  assert.ok(
+    cacheStore.has(missingStaticRequest.url),
+    "La respuesta estática obtenida de red debe guardarse en runtime"
   );
 
   await expectNotIntercepted(

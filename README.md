@@ -196,6 +196,7 @@ Después de una activación autorizada, el componente escucha `controllerchange`
 
 `tests/service-worker.spec.ts` verifica el registro desde React y ejecuta `public/sw.js` en un contexto simulado para comprobar los eventos del ciclo de vida, la precarga, la propagación de errores de `cache.addAll`, la limpieza selectiva de cachés, el mensaje `SKIP_WAITING` y la exclusión de peticiones distintas de GET.
 
+La comprobación offline completa queda pendiente hasta integrar el fallback de Carlos. En esta rama todavía no existe `public/offline.html`; por ello la precarga real debe fallar de forma segura y no se afirma que la aplicación ya funcione sin conexión.
 ### Consulta offline y estrategia de caché
 
 La Semana 3 incorpora una estrategia de caché para mantener una experiencia básica cuando el dispositivo pierde la conexión.
@@ -214,6 +215,3 @@ La prueba puede ejecutarse directamente con:
 
 ```bash
 node tests/offline.spec.ts
-```
-
-y también forma parte del comando `npm test`.
