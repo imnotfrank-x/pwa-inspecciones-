@@ -338,6 +338,112 @@ dd { font-size: .82rem; font-weight: 700; margin: 0; text-align: right; }
   text-decoration: none;
 }
 
+.inspection-detail-shell {
+  max-width: 920px;
+}
+
+.detail-back-link {
+  color: var(--accent);
+  display: inline-flex;
+  font-weight: 700;
+  margin-bottom: 20px;
+  text-underline-offset: 3px;
+}
+
+.detail-back-link:hover {
+  color: #2445b5;
+}
+
+.detail-back-link:focus-visible {
+  border-radius: 4px;
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.inspection-detail {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: 0 12px 32px rgba(36, 55, 95, 0.08);
+  overflow: hidden;
+}
+
+.inspection-detail-header {
+  align-items: flex-start;
+  background: linear-gradient(135deg, #172b62, #3156d3);
+  color: #ffffff;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  padding: 38px;
+}
+
+.inspection-detail-header .eyebrow {
+  color: #c9d3ff;
+}
+
+.inspection-detail-header h1 {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+}
+
+.inspection-detail-header .lead {
+  margin-bottom: 0;
+}
+
+.inspection-detail-header .badge {
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+
+.inspection-detail-content {
+  padding: 32px 38px 38px;
+}
+
+.inspection-detail-content h2 {
+  font-size: 1.45rem;
+  margin-bottom: 20px;
+}
+
+.inspection-detail-list {
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+}
+
+.inspection-detail-list div {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 18px 12px 18px 0;
+}
+
+.inspection-detail-list div:nth-child(even) {
+  padding-left: 20px;
+}
+
+.inspection-detail-list dt,
+.inspection-detail-list dd {
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.inspection-detail-list dd {
+  line-height: 1.55;
+}
+
+.inspection-detail-list .inspection-detail-summary {
+  grid-column: 1 / -1;
+  padding-left: 0;
+}
+
+.inspection-not-found {
+  background: #f8faff;
+  border-style: dashed;
+}
+
 @media (max-width: 760px) {
   .page-shell {
     padding: 20px 16px;
@@ -368,6 +474,27 @@ dd { font-size: .82rem; font-weight: 700; margin: 0; text-align: right; }
 
   .state-verification a {
     text-align: center;
+  }
+
+  .inspection-detail-header {
+    flex-direction: column;
+    padding: 28px 22px;
+  }
+
+  .inspection-detail-content {
+    padding: 24px 22px 28px;
+  }
+
+  .inspection-detail-list {
+    grid-template-columns: 1fr;
+  }
+
+  .inspection-detail-list div:nth-child(even) {
+    padding-left: 0;
+  }
+
+  .inspection-detail-list .inspection-detail-summary {
+    grid-column: auto;
   }
 
   .app-header-inner {

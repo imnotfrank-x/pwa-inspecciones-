@@ -1,8 +1,9 @@
 // @ts-nocheck
 {
   const assert = require("node:assert/strict");
-  const { readFileSync } = require("node:fs");
+  const { existsSync, readFileSync } = require("node:fs");
   const { resolve } = require("node:path");
+  const ts = require("typescript");
 
   const root = resolve(__dirname, "..");
 
@@ -18,6 +19,27 @@
   const inspectionList = readProjectFile(
     "src/components/inspection-list.tsx"
   );
+  const detailPagePath = "src/app/inspecciones/[id]/page.tsx";
+  const detailLoadingPath = "src/app/inspecciones/[id]/loading.tsx";
+  const detailErrorPath = "src/app/inspecciones/[id]/error.tsx";
+  const detailNotFoundPath = "src/app/inspecciones/[id]/not-found.tsx";
+  const detailDataPath = "src/lib/data/inspection-detail.ts";
+
+  for (const path of [
+    detailPagePath,
+    detailLoadingPath,
+    detailErrorPath,
+    detailNotFoundPath,
+    detailDataPath
+  ]) {
+    assert.ok(existsSync(resolve(root, path)), `Debe existir ${path}`);
+  }
+
+  const detailPage = readProjectFile(detailPagePath);
+  const detailLoading = readProjectFile(detailLoadingPath);
+  const detailError = readProjectFile(detailErrorPath);
+  const detailNotFound = readProjectFile(detailNotFoundPath);
+  const detailData = readProjectFile(detailDataPath);
 
   assert.match(
     packageJson.scripts.test,
@@ -93,5 +115,150 @@
     "Cada inspección debe enlazar su futura ruta de detalle"
   );
 
-  console.log("rendering.spec.ts: CSR PASS");
+  assert.doesNotMatch(
+    detailPage,
+    /["']use client["']\s*;/,
+    "La página de detalle debe permanecer como componente de servidor"
+  );
+
+  assert.match(
+    detailPage,
+    /export default async function/,
+    "La página SSR debe declararse como función async"
+  );
+
+  assert.match(
+    detailPage,
+    /params\.id/,
+    "La página SSR debe leer params.id"
+  );
+
+  assert.match(
+    detailPage,
+    /getInspectionById\(params\.id\)/,
+    "La página SSR debe consultar el detalle sintético por ID"
+  );
+
+  assert.match(
+    detailPage,
+    /notFound\(\)/,
+    "La página SSR debe activar el estado not-found"
+  );
+
+  assert.match(
+    detailPage,
+    /export const dynamic\s*=\s*["']force-dynamic["']/,
+    "El detalle debe declarar la estrategia dinámica de servidor"
+  );
+
+  assert.doesNotMatch(
+    detailPage,
+    /generateStaticParams/,
+    "El detalle no debe generar estáticamente los IDs conocidos"
+  );
+
+  assert.match(
+    detailLoading,
+    /import \{ LoadingState \} from ["']\.\.\/\.\.\/\.\.\/components\/loading-state["']/,
+    "El estado de carga SSR debe reutilizar LoadingState"
+  );
+
+  assert.match(
+    detailLoading,
+    /Cargando detalle de inspección/,
+    "La carga SSR debe mostrar un mensaje específico"
+  );
+
+  assert.match(
+    detailError,
+    /^"use client";/,
+    "El límite de error del detalle debe ser un componente cliente"
+  );
+
+  assert.match(
+    detailError,
+    /role="alert"/,
+    "El error SSR debe anunciarse como alerta"
+  );
+
+  assert.match(
+    detailError,
+    /onClick=\{\(\) => reset\(\)\}/,
+    "El botón del error SSR debe ejecutar reset"
+  );
+
+  assert.doesNotMatch(
+    detailError,
+    /error\.(message|stack)/,
+    "El límite de error no debe revelar detalles internos"
+  );
+
+  assert.match(
+    detailNotFound,
+    /La inspección sintética no existe/,
+    "Debe existir un mensaje específico para el registro inexistente"
+  );
+
+  assert.match(
+    detailNotFound,
+    /href="\/inspecciones"/,
+    "El estado not-found debe permitir volver al listado"
+  );
+
+  for (const routeState of [detailLoading, detailError, detailNotFound]) {
+    assert.doesNotMatch(
+      routeState,
+      /<main[\s>]/,
+      "Los estados del detalle no deben duplicar el main de AppShell"
+    );
+  }
+
+  assert.match(
+    detailData,
+    /SYNTHETIC_DETAIL_DELAY_MS\s*=\s*400/,
+    "La consulta debe usar una espera sintética determinista"
+  );
+
+  const previousTsExtension = require.extensions[".ts"];
+  require.extensions[".ts"] = function transpileTypeScript(module, filename) {
+    const source = readFileSync(filename, "utf8");
+    const output = ts.transpileModule(source, {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2020
+      },
+      fileName: filename
+    }).outputText;
+    module._compile(output, filename);
+  };
+
+  const detailModulePath = resolve(root, detailDataPath);
+  const { getInspectionById } = require(detailModulePath);
+
+  (async () => {
+    const firstInspection = await getInspectionById("inspection-001");
+    const secondInspection = await getInspectionById("inspection-002");
+    const missingInspection = await getInspectionById("no-existe");
+
+    assert.equal(firstInspection?.id, "inspection-001");
+    assert.equal(secondInspection?.id, "inspection-002");
+    assert.equal(missingInspection, undefined);
+    await assert.rejects(
+      getInspectionById("error-demo"),
+      /Synthetic inspection detail error/
+    );
+
+    if (previousTsExtension) {
+      require.extensions[".ts"] = previousTsExtension;
+    } else {
+      delete require.extensions[".ts"];
+    }
+
+    delete require.cache[detailModulePath];
+
+    console.log("rendering.spec.ts: CSR + SSR PASS");
+  })().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
 }
