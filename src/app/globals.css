@@ -190,6 +190,25 @@ dl div { display: flex; justify-content: space-between; gap: 12px; margin: 7px 0
 dt { color: var(--muted); font-size: .82rem; }
 dd { font-size: .82rem; font-weight: 700; margin: 0; text-align: right; }
 
+.card-action {
+  color: var(--accent);
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-top: 18px;
+  text-underline-offset: 3px;
+}
+
+.card-action:hover {
+  color: #2445b5;
+}
+
+.card-action:focus-visible {
+  border-radius: 4px;
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .state-panel {
   background: var(--surface);
   border: 1px solid var(--line);

@@ -9,11 +9,13 @@ export type InspectionViewState =
 type InspectionListProps = {
   inspections: Inspection[];
   state?: InspectionViewState;
+  stateActionHref?: string;
 };
 
 export function InspectionList({
   inspections,
-  state = "ready"
+  state = "ready",
+  stateActionHref = "/"
 }: InspectionListProps) {
   const countLabel =
     state === "ready"
@@ -63,7 +65,7 @@ export function InspectionList({
             La información no pudo mostrarse. Los registros existentes no
             fueron modificados.
           </p>
-          <a className="state-action" href="/">
+          <a className="state-action" href={stateActionHref}>
             Volver a intentar
           </a>
         </div>
@@ -81,7 +83,7 @@ export function InspectionList({
           <p>
             Cuando exista una inspección sintética aparecerá en esta sección.
           </p>
-          <a className="state-action" href="/">
+          <a className="state-action" href={stateActionHref}>
             Consultar nuevamente
           </a>
         </div>
@@ -111,6 +113,13 @@ export function InspectionList({
                   <dd>{inspection.findings}</dd>
                 </div>
               </dl>
+
+              <a
+                className="card-action"
+                href={`/inspecciones/${inspection.id}`}
+              >
+                Ver detalle
+              </a>
             </article>
           ))}
         </div>

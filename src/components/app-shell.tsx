@@ -32,8 +32,8 @@ export function AppShell({ children }: AppShellProps) {
             className="primary-navigation"
           >
             <a href="/">Inicio</a>
-            <a href="/#inspecciones">Inspecciones</a>
-            <a href="/#state-verification">Estados</a>
+            <a href="/inspecciones">Inspecciones</a>
+            <a href="/inspecciones#csr-state-verification">Estados</a>
           </nav>
         </div>
       </header>
