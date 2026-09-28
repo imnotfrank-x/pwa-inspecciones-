@@ -234,3 +234,106 @@ Resultados observados:
 * El check público terminó con `PUBLIC_OK`.
 
 La prueba automatizada simula el Service Worker. La comprobación manual usando DevTools y el modo Network Offline queda pendiente, si todavía no se realizó.
+
+## Incremento de la Semana 4
+
+### Objetivo
+
+El incremento compara renderizado CSR y SSR dentro del dominio de inspecciones
+de laboratorio, utilizando únicamente datos sintéticos.
+
+### Rutas y estrategias
+
+| Ruta | Estrategia | Uso |
+|---|---|---|
+| `/inspecciones` | CSR | Listado interactivo de inspecciones. |
+| `/inspecciones/[id]` | SSR dinámico | Detalle de una inspección. |
+
+Aunque el build identifica `/inspecciones` como estática, lo que se genera de
+esa forma es el shell inicial. Los registros se cargan en el navegador después
+de la hidratación.
+
+### Estados verificables
+
+Listado CSR:
+
+- `/inspecciones`: contenido.
+- `/inspecciones?estado=carga`: carga.
+- `/inspecciones?estado=error`: error.
+- `/inspecciones?estado=vacio`: vacío.
+
+Detalle SSR:
+
+- `/inspecciones/inspection-001`: detalle válido.
+- `/inspecciones/inspection-002`: segundo detalle válido.
+- `/inspecciones/no-existe`: registro inexistente.
+- `/inspecciones/error-demo`: error sintético.
+
+### Instalación y ejecución
+
+```bash
+npm ci --ignore-scripts --no-audit --no-fund
+npm run dev
+```
+
+El entorno declarado es Node.js 20.19.0 con npm 10.8.2.
+
+### Verificación
+
+```bash
+npm test
+npm run build
+make verify
+bash public-tests/check.sh
+```
+
+Resultados reproducidos durante la revisión del cierre:
+
+- Las siete pruebas acumulativas terminaron en `PASS`.
+- `rendering.spec.ts` mostró `CSR + SSR PASS`.
+- El build de Next.js compiló y validó tipos correctamente.
+- `/inspecciones/[id]` apareció como ruta dinámica renderizada bajo demanda.
+- `make verify` concluyó con `Verificación técnica: pass`.
+- El check público acumulativo terminó con `PUBLIC_OK`.
+- Los checks de GitHub Actions del PR #9 fueron reportados como exitosos.
+
+Los commits individuales permanecen en el historial: Francisco implementó el
+CSR en `c4147f8`, Javier implementó el SSR en `184af60` y Carlos completó el
+cierre documental y de verificación en `efeba63`. La evidencia de Carlos quedó
+registrada en `b167d39`.
+
+### Métrica reproducible
+
+Con Node.js 20.19.0, npm 10.8.2 y Next.js 14.2.35, `npm run build` mostró:
+
+| Ruta | Tamaño propio | First Load JS |
+|---|---:|---:|
+| `/inspecciones` | 2.25 kB | 89.5 kB |
+| `/inspecciones/[id]` | 152 B | 87.4 kB |
+
+Estas métricas corresponden al bundle generado; no representan latencia de red.
+
+### Decisión técnica
+
+El listado utiliza CSR porque requiere interacción, filtros y futuras
+actualizaciones locales. El detalle utiliza SSR dinámico porque una URL directa
+debe resolver el identificador en el servidor y entregar su contenido inicial.
+
+La decisión completa está documentada en `docs/rendering-decision.md`.
+
+### Limitaciones
+
+- Los datos utilizados son sintéticos.
+- No existe un backend real ni una base de datos.
+- Los retrasos de carga son deliberados para demostrar estados.
+- `error-demo` es un escenario controlado de demostración.
+- IndexedDB y la sincronización quedan para una etapa posterior.
+- El check original del kit puede confundir menciones documentales de
+  credenciales con secretos reales; el fallo y su tratamiento están
+  documentados en la decisión de renderizado.
+
+### GitHub Actions
+
+El workflow oficial está en
+`.github/workflows/week-04-w04-csr-ssr.yml`. Su contenido se conserva sin
+modificaciones y el PR #9 ejecuta los criterios AC-01, AC-02 y AC-03.
