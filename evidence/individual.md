@@ -133,6 +133,20 @@ Utilicé IA como apoyo para estructurar y redactar el documento de requisitos y 
 * **Uso declarado de IA:** Utilicé IA como apoyo para interpretar la guía de la Semana 3, estructurar las pruebas y revisar los cambios. La creación de los archivos, la ejecución de las pruebas y la comprobación de los resultados se realizaron en mi entorno local, y puedo explicar las decisiones técnicas registradas en esta evidencia.
 
 
+### Incremento personal — Semana 4
+
+- **SHA del commit de mi contribución:** efeba632a9d6a0219813ed0b106dda20b21a0233.
+- **Contribución concreta:** Completé docs/rendering-decision.md con la comparación entre CSR y SSR, sus estados verificables, prevención de hydration mismatch, trade-offs, límites y métrica reproducible. Actualicé README.md, la verificación acumulativa, el check público y la cobertura final de tests/rendering.spec.ts. También integré sin modificaciones el workflow oficial de Semana 4.
+- **Decisión técnica que puedo explicar:** El listado utiliza CSR porque su evolución requiere interacción, filtros y lectura futura desde almacenamiento local. El detalle utiliza SSR dinámico porque resuelve params.id en el servidor y entrega el contenido correspondiente a una URL directa. La ruta del detalle declara force-dynamic para evitar que los registros se generen estáticamente.
+- **Métrica que puedo explicar:** Ejecuté npm run build con Node.js 20.19.0, npm 10.8.2 y Next.js 14.2.35. El listado reportó 2.25 kB propios y 89.5 kB de First Load JS; el detalle reportó 152 B propios y 87.4 kB de First Load JS. Esta métrica mide el bundle generado y no la latencia de red.
+- **Pruebas ejecutadas personalmente:** Ejecuté npm ci --ignore-scripts --no-audit --no-fund, npm test, npm run build, make verify y bash public-tests/check.sh.
+- **Resultado real:** npm ci --ignore-scripts --no-audit --no-fund: PASS. npm test: PASS, 7/7 pruebas. npm run build: PASS. npm run verify: PASS, con Verificación técnica: pass. make verify: no se pudo ejecutar porque make no está instalado/reconocido en Windows. bash public-tests/check.sh: no se pudo ejecutar desde Bash porque ese entorno no encontró node. La comprobación equivalente realizada en PowerShell confirmó Estructura acumulativa correcta. y PUBLIC_OK.
+- **Qué verifican las pruebas:** Comprueban las rutas y límites CSR/SSR, estados accesibles, consulta por ID, registro inexistente, error sintético, conservación del App Shell, documentos obligatorios y workflow oficial sin modificaciones.
+- **Qué no verifican:** No demuestran comportamiento con un backend, rendimiento de red, persistencia en IndexedDB, sincronización ni compatibilidad completa entre navegadores.
+- **Fallo diagnosticado:** El check público del kit tiene una comprobación amplia de palabras relacionadas con credenciales que puede producir coincidencias en archivos que forman parte de la documentación, dependencias o pruebas. Conservé una comprobación estructural acumulativa y documenté la limitación sin eliminar controles de seguridad.
+- **Cambio que puedo realizar en vivo:** Puedo agregar o retirar un archivo del arreglo de verificación, explicar la diferencia entre una ruta estática con hidratación CSR y una ruta SSR dinámica, o actualizar la métrica usando una nueva salida del build.
+- **Uso declarado de IA:** Utilicé ChatGPT/Codex para interpretar el contrato, estructurar la documentación y revisar las pruebas. Validé personalmente el diff, los comandos, el workflow y los resultados reproducibles antes de aceptar los cambios.
+
 ## Integrante: Hernandez Mendez Javier — 3523110052
 
 ### Javier
