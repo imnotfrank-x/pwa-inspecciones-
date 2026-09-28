@@ -234,3 +234,74 @@ Resultados observados:
 * El check público terminó con `PUBLIC_OK`.
 
 La prueba automatizada simula el Service Worker. La comprobación manual usando DevTools y el modo Network Offline queda pendiente, si todavía no se realizó.
+Incremento de la Semana 4
+Objetivo
+
+El incremento compara renderizado CSR y SSR dentro del dominio de inspecciones de laboratorio, utilizando únicamente datos sintéticos.
+
+Rutas
+Ruta	Estrategia	Uso
+/inspecciones	CSR	Listado interactivo de inspecciones
+/inspecciones/[id]	SSR dinámico	Detalle de una inspección
+Estados verificables del listado CSR
+/inspecciones: contenido.
+/inspecciones?estado=carga: carga.
+/inspecciones?estado=error: error.
+/inspecciones?estado=vacio: vacío.
+Estados verificables del detalle SSR
+/inspecciones/inspection-001: detalle válido.
+/inspecciones/inspection-002: segundo detalle válido.
+/inspecciones/no-existe: registro inexistente.
+/inspecciones/error-demo: error sintético.
+Instalación y ejecución
+
+npm ci --ignore-scripts --no-audit --no-fund
+
+npm run dev
+
+Verificación
+
+npm test
+
+npm run build
+
+make verify
+
+bash public-tests/check.sh
+
+Métrica reproducible
+
+Con Node.js 20.19.0, npm 10.8.2 y Next.js 14.2.35:
+
+Ruta	Tamaño propio	First Load JS
+/inspecciones	2.25 kB	89.5 kB
+/inspecciones/[id]	152 B	87.4 kB
+
+Estas métricas corresponden al tamaño reportado por npm run build; no representan latencia de red.
+
+Decisión técnica
+
+El listado /inspecciones utiliza CSR porque requiere interacción, filtros y futuras actualizaciones locales.
+
+El detalle /inspecciones/[id] utiliza SSR dinámico porque la URL debe resolver el identificador solicitado en el servidor y entregar el contenido inicial.
+
+La decisión completa está documentada en docs/rendering-decision.md.
+
+Limitaciones
+Los datos utilizados son sintéticos.
+No existe un backend real ni una base de datos.
+Los retrasos de carga son deliberados para demostrar estados.
+error-demo es un escenario controlado de demostración.
+La integración con IndexedDB y la sincronización quedan para una etapa posterior.
+La comprobación pública puede detectar coincidencias de palabras como secret, password o token en documentación, dependencias y pruebas.
+GitHub Actions
+
+El workflow oficial de la Semana 4 se encuentra en:
+
+.github/workflows/week-04-w04-csr-ssr.yml
+
+Su contenido debe integrarse sin modificaciones. La ejecución correspondiente al commit de cierre debe verificarse desde GitHub Actions.
+
+Resultado del cierre
+
+El resultado final de las verificaciones se registrará después de ejecutar los comandos de cierre. El SHA del commit de cierre se incorporará en este apartado una vez realizado el commit final.

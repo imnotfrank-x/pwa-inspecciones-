@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const root = resolve(import.meta.dirname, "..");
-const required = [".nvmrc", "package.json", "package-lock.json", "README.md", "public/manifest.webmanifest", "public/icons/icon-192.png", "public/icons/icon-512.png", "src/app/layout.tsx", "src/app/page.tsx", "src/app/loading.tsx", "src/app/error.tsx", "src/app/globals.css", "src/components/app-shell.tsx", "src/components/inspection-list.tsx", "src/lib/data/inspections.ts", "docs/requirements.md", "docs/decision-record.md", "tests/starter.spec.mjs", "tests/manifest.spec.ts", "tests/inspection-states.spec.ts", "tests/app-shell.spec.ts", "evidence/individual.md"];
+const required = [".nvmrc", "package.json", "package-lock.json", "README.md", "public/manifest.webmanifest", "public/icons/icon-192.png", "public/icons/icon-512.png", "src/app/layout.tsx", "src/app/page.tsx", "src/app/loading.tsx", "src/app/error.tsx", "src/app/globals.css", "src/components/app-shell.tsx", "src/components/inspection-list.tsx", "src/lib/data/inspections.ts", "docs/requirements.md", "docs/decision-record.md", "tests/starter.spec.mjs", "tests/manifest.spec.ts", "tests/inspection-states.spec.ts", "tests/app-shell.spec.ts", "evidence/individual.md", "src/app/inspecciones/page.tsx", "src/app/inspecciones/[id]/page.tsx", "src/app/inspecciones/[id]/loading.tsx", "src/app/inspecciones/[id]/error.tsx", "src/app/inspecciones/[id]/not-found.tsx", "src/components/loading-state.tsx", "src/lib/data/inspection-detail.ts", "docs/rendering-decision.md", "tests/rendering.spec.ts", ".github/workflows/week-04-w04-csr-ssr.yml"];
 const missing = required.filter(file => !existsSync(resolve(root, file)));
 const structureOnly = process.argv.includes("--structure");
 if (structureOnly) {
@@ -23,7 +23,7 @@ const git = args => {
   const r = spawnSync("git", args, { cwd: root, encoding: "utf8" });
   return r.status === 0 ? r.stdout.trim() : null;
 };
-const documents = ["docs/requirements.md", "docs/decision-record.md", "evidence/individual.md", "README.md"].map(file => ({ file, content: existsSync(resolve(root, file)) ? readFileSync(resolve(root, file), "utf8") : null }));
+const documents = ["docs/requirements.md", "docs/decision-record.md", "docs/cache-strategy.md", "docs/rendering-decision.md", "evidence/individual.md", "README.md"].map(file => ({ file, content: existsSync(resolve(root, file)) ? readFileSync(resolve(root, file), "utf8") : null }));
 const gitStatus = git(["status", "--porcelain"]);
 const result = {
   schemaVersion: 2,
@@ -40,3 +40,5 @@ mkdirSync(resolve(root, "reports"), { recursive: true });
 writeFileSync(resolve(root, "reports/verification.json"), JSON.stringify(result, null, 2) + "\n");
 console.log(`\nVerificación técnica: ${result.status}. Revisión académica: pendiente. Reporte: reports/verification.json`);
 process.exit(result.status === "pass" ? 0 : 1);
+
+

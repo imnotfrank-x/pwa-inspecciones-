@@ -2,6 +2,7 @@
 {
   const assert = require("node:assert/strict");
   const { existsSync, readFileSync } = require("node:fs");
+  const { createHash } = require("node:crypto");
   const { resolve } = require("node:path");
   const ts = require("typescript");
 
@@ -24,6 +25,19 @@
   const detailErrorPath = "src/app/inspecciones/[id]/error.tsx";
   const detailNotFoundPath = "src/app/inspecciones/[id]/not-found.tsx";
   const detailDataPath = "src/lib/data/inspection-detail.ts";
+  const renderingDecisionPath = "docs/rendering-decision.md";
+  const workflowPath =
+    ".github/workflows/week-04-w04-csr-ssr.yml";
+
+  for (const path of [renderingDecisionPath, workflowPath]) {
+    assert.ok(
+      existsSync(resolve(root, path)),
+      `Debe existir ${path}`
+    );
+  }
+
+  const renderingDecision = readProjectFile(renderingDecisionPath);
+  const workflow = readProjectFile(workflowPath);
 
   for (const path of [
     detailPagePath,
@@ -219,6 +233,53 @@
     "La consulta debe usar una espera sintÃ©tica determinista"
   );
 
+  assert.match(
+    renderingDecision,
+    /CSR/,
+    "La decisión debe explicar el renderizado CSR"
+  );
+
+  assert.match(
+    renderingDecision,
+    /SSR/,
+    "La decisión debe explicar el renderizado SSR"
+  );
+
+  assert.match(
+    renderingDecision,
+    /hydration mismatch/i,
+    "La decisión debe documentar el riesgo de hidratación"
+  );
+
+  assert.match(
+    renderingDecision,
+    /First Load JS/,
+    "La decisión debe incluir una métrica reproducible del build"
+  );
+
+  assert.match(
+    renderingDecision,
+    /2\.25 kB/,
+    "La decisión debe registrar el tamaño observado del listado"
+  );
+
+  assert.match(
+    renderingDecision,
+    /152 B/,
+    "La decisión debe registrar el tamaño observado del detalle"
+  );
+
+  const normalizedWorkflow = workflow.replace(/\r\n/g, "\n");
+  const workflowHash = createHash("sha256")
+    .update(normalizedWorkflow, "utf8")
+    .digest("hex");
+
+  assert.equal(
+    workflowHash,
+    "9253a08a0a38d1f26abb6d61d9112dd24da9a99e374ba13b77ea96aeb6ffb4fe",
+    "El workflow oficial de Semana 4 no debe modificarse"
+  );
+
   const previousTsExtension = require.extensions[".ts"];
   require.extensions[".ts"] = function transpileTypeScript(module, filename) {
     const source = readFileSync(filename, "utf8");
@@ -262,3 +323,6 @@
     process.exitCode = 1;
   });
 }
+
+
+
