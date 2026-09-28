@@ -236,37 +236,37 @@
   assert.match(
     renderingDecision,
     /CSR/,
-    "La decisi髇 debe explicar el renderizado CSR"
+    "La decisi贸n debe explicar el renderizado CSR"
   );
 
   assert.match(
     renderingDecision,
     /SSR/,
-    "La decisi髇 debe explicar el renderizado SSR"
+    "La decisi贸n debe explicar el renderizado SSR"
   );
 
   assert.match(
     renderingDecision,
     /hydration mismatch/i,
-    "La decisi髇 debe documentar el riesgo de hidrataci髇"
+    "La decisi贸n debe documentar el riesgo de hidrataci贸n"
   );
 
   assert.match(
     renderingDecision,
     /First Load JS/,
-    "La decisi髇 debe incluir una m閠rica reproducible del build"
+    "La decisi贸n debe incluir una m茅trica reproducible del build"
   );
 
   assert.match(
     renderingDecision,
     /2\.25 kB/,
-    "La decisi髇 debe registrar el tama駉 observado del listado"
+    "La decisi贸n debe registrar el tama帽o observado del listado"
   );
 
   assert.match(
     renderingDecision,
     /152 B/,
-    "La decisi髇 debe registrar el tama駉 observado del detalle"
+    "La decisi贸n debe registrar el tama帽o observado del detalle"
   );
 
   const normalizedWorkflow = workflow.replace(/\r\n/g, "\n");
@@ -323,6 +323,3 @@
     process.exitCode = 1;
   });
 }
-
-
-

@@ -85,3 +85,92 @@ Comando utilizado:
 
 ```bash
 npm run build
+```
+
+La tabla mide el tamaño del bundle generado. No representa latencia de red,
+tiempo de respuesta de un servidor ni rendimiento de un dispositivo. Los
+valores pueden cambiar si se modifica el código, las dependencias o la versión
+de Next.js.
+
+Los retrasos de 350 ms y 400 ms no son métricas de rendimiento. Son mecanismos
+sintéticos para hacer observables los estados de carga.
+
+## 9. Pruebas y verificación
+
+`tests/rendering.spec.ts` comprueba el contrato crítico de ambas estrategias:
+
+- límite de cliente y carga posterior a la hidratación para el listado CSR;
+- URLs deterministas para contenido, carga, error y vacío;
+- semántica accesible de los estados compartidos;
+- componente de servidor, `params.id`, `notFound()` y renderizado dinámico en
+  el detalle SSR;
+- consulta de registros válidos, registro inexistente y error sintético;
+- integridad normalizada del workflow oficial de la Semana 4.
+
+La verificación acumulativa se ejecuta con:
+
+```bash
+npm ci --ignore-scripts --no-audit --no-fund
+npm test
+npm run build
+make verify
+bash public-tests/check.sh
+```
+
+En la revisión del cierre, las siete pruebas terminaron en `PASS`, el build
+mostró `ƒ /inspecciones/[id]`, `make verify` concluyó con estado técnico
+`pass` y el check público acumulativo terminó con `PUBLIC_OK`.
+
+## 10. Supuestos y límites
+
+- No existe un backend ni una base de datos real.
+- Todos los registros proceden de un arreglo sintético versionado.
+- La espera fija de 400 ms no representa una consulta de producción.
+- `error-demo` existe únicamente para demostrar el límite de error.
+- El modo offline conserva el App Shell, pero todavía no permite crear o
+  sincronizar inspecciones.
+- No se implementan autenticación, IndexedDB, sincronización ni resolución de
+  conflictos en este incremento.
+- Las pruebas deterministas no sustituyen una prueba E2E completa en todos los
+  navegadores objetivo.
+
+## 11. Fallos encontrados
+
+El check público incluido en el ZIP de la Semana 4 busca las palabras
+`api_key`, `secret`, `password` o `token` en todo el repositorio. Esa búsqueda
+produce falsos positivos en `package-lock.json`, documentación y pruebas que
+describen controles de seguridad.
+
+No se eliminaron controles ni documentación para ocultar las coincidencias. El
+check acumulativo del repositorio verifica los artefactos requeridos, mientras
+que la ausencia real de credenciales continúa sujeta a revisión del contenido.
+
+El workflow oficial se integró sin modificar su contenido. En Windows, el hash
+de los bytes puede variar por la conversión CRLF; al normalizar los saltos de
+línea a LF conserva el SHA-256 oficial
+`9253a08a0a38d1f26abb6d61d9112dd24da9a99e374ba13b77ea96aeb6ffb4fe`.
+
+## 12. Consecuencias y trade-offs
+
+### Ventajas
+
+- El listado queda preparado para filtros, IndexedDB e interacción offline.
+- El detalle entrega contenido resuelto por ID desde el servidor.
+- Los estados son reproducibles sin servicios privados ni datos reales.
+- La solución conserva el App Shell y las capacidades PWA acumuladas.
+
+### Costos
+
+- Se mantienen dos modelos de renderizado y dos ciclos de error diferentes.
+- El límite de error del servidor necesita un componente cliente para
+  proporcionar `reset()`.
+- Las demoras sintéticas facilitan la evaluación, pero no deben interpretarse
+  como rendimiento real.
+
+## 13. Trabajo futuro
+
+- Sustituir las demoras sintéticas por una capa de datos.
+- Implementar persistencia local mediante IndexedDB.
+- Incorporar sincronización y resolución de conflictos.
+- Agregar pruebas E2E en un navegador real.
+- Medir carga y respuesta bajo un dispositivo y una red definidos.

@@ -234,74 +234,106 @@ Resultados observados:
 * El check público terminó con `PUBLIC_OK`.
 
 La prueba automatizada simula el Service Worker. La comprobación manual usando DevTools y el modo Network Offline queda pendiente, si todavía no se realizó.
-Incremento de la Semana 4
-Objetivo
 
-El incremento compara renderizado CSR y SSR dentro del dominio de inspecciones de laboratorio, utilizando únicamente datos sintéticos.
+## Incremento de la Semana 4
 
-Rutas
-Ruta	Estrategia	Uso
-/inspecciones	CSR	Listado interactivo de inspecciones
-/inspecciones/[id]	SSR dinámico	Detalle de una inspección
-Estados verificables del listado CSR
-/inspecciones: contenido.
-/inspecciones?estado=carga: carga.
-/inspecciones?estado=error: error.
-/inspecciones?estado=vacio: vacío.
-Estados verificables del detalle SSR
-/inspecciones/inspection-001: detalle válido.
-/inspecciones/inspection-002: segundo detalle válido.
-/inspecciones/no-existe: registro inexistente.
-/inspecciones/error-demo: error sintético.
-Instalación y ejecución
+### Objetivo
 
+El incremento compara renderizado CSR y SSR dentro del dominio de inspecciones
+de laboratorio, utilizando únicamente datos sintéticos.
+
+### Rutas y estrategias
+
+| Ruta | Estrategia | Uso |
+|---|---|---|
+| `/inspecciones` | CSR | Listado interactivo de inspecciones. |
+| `/inspecciones/[id]` | SSR dinámico | Detalle de una inspección. |
+
+Aunque el build identifica `/inspecciones` como estática, lo que se genera de
+esa forma es el shell inicial. Los registros se cargan en el navegador después
+de la hidratación.
+
+### Estados verificables
+
+Listado CSR:
+
+- `/inspecciones`: contenido.
+- `/inspecciones?estado=carga`: carga.
+- `/inspecciones?estado=error`: error.
+- `/inspecciones?estado=vacio`: vacío.
+
+Detalle SSR:
+
+- `/inspecciones/inspection-001`: detalle válido.
+- `/inspecciones/inspection-002`: segundo detalle válido.
+- `/inspecciones/no-existe`: registro inexistente.
+- `/inspecciones/error-demo`: error sintético.
+
+### Instalación y ejecución
+
+```bash
 npm ci --ignore-scripts --no-audit --no-fund
-
 npm run dev
+```
 
-Verificación
+El entorno declarado es Node.js 20.19.0 con npm 10.8.2.
 
+### Verificación
+
+```bash
 npm test
-
 npm run build
-
 make verify
-
 bash public-tests/check.sh
+```
 
-Métrica reproducible
+Resultados reproducidos durante la revisión del cierre:
 
-Con Node.js 20.19.0, npm 10.8.2 y Next.js 14.2.35:
+- Las siete pruebas acumulativas terminaron en `PASS`.
+- `rendering.spec.ts` mostró `CSR + SSR PASS`.
+- El build de Next.js compiló y validó tipos correctamente.
+- `/inspecciones/[id]` apareció como ruta dinámica renderizada bajo demanda.
+- `make verify` concluyó con `Verificación técnica: pass`.
+- El check público acumulativo terminó con `PUBLIC_OK`.
+- Los checks de GitHub Actions del PR #9 fueron reportados como exitosos.
 
-Ruta	Tamaño propio	First Load JS
-/inspecciones	2.25 kB	89.5 kB
-/inspecciones/[id]	152 B	87.4 kB
+Los commits individuales permanecen en el historial: Francisco implementó el
+CSR en `c4147f8`, Javier implementó el SSR en `184af60` y Carlos completó el
+cierre documental y de verificación en `efeba63`. La evidencia de Carlos quedó
+registrada en `b167d39`.
 
-Estas métricas corresponden al tamaño reportado por npm run build; no representan latencia de red.
+### Métrica reproducible
 
-Decisión técnica
+Con Node.js 20.19.0, npm 10.8.2 y Next.js 14.2.35, `npm run build` mostró:
 
-El listado /inspecciones utiliza CSR porque requiere interacción, filtros y futuras actualizaciones locales.
+| Ruta | Tamaño propio | First Load JS |
+|---|---:|---:|
+| `/inspecciones` | 2.25 kB | 89.5 kB |
+| `/inspecciones/[id]` | 152 B | 87.4 kB |
 
-El detalle /inspecciones/[id] utiliza SSR dinámico porque la URL debe resolver el identificador solicitado en el servidor y entregar el contenido inicial.
+Estas métricas corresponden al bundle generado; no representan latencia de red.
 
-La decisión completa está documentada en docs/rendering-decision.md.
+### Decisión técnica
 
-Limitaciones
-Los datos utilizados son sintéticos.
-No existe un backend real ni una base de datos.
-Los retrasos de carga son deliberados para demostrar estados.
-error-demo es un escenario controlado de demostración.
-La integración con IndexedDB y la sincronización quedan para una etapa posterior.
-La comprobación pública puede detectar coincidencias de palabras como secret, password o token en documentación, dependencias y pruebas.
-GitHub Actions
+El listado utiliza CSR porque requiere interacción, filtros y futuras
+actualizaciones locales. El detalle utiliza SSR dinámico porque una URL directa
+debe resolver el identificador en el servidor y entregar su contenido inicial.
 
-El workflow oficial de la Semana 4 se encuentra en:
+La decisión completa está documentada en `docs/rendering-decision.md`.
 
-.github/workflows/week-04-w04-csr-ssr.yml
+### Limitaciones
 
-Su contenido debe integrarse sin modificaciones. La ejecución correspondiente al commit de cierre debe verificarse desde GitHub Actions.
+- Los datos utilizados son sintéticos.
+- No existe un backend real ni una base de datos.
+- Los retrasos de carga son deliberados para demostrar estados.
+- `error-demo` es un escenario controlado de demostración.
+- IndexedDB y la sincronización quedan para una etapa posterior.
+- El check original del kit puede confundir menciones documentales de
+  credenciales con secretos reales; el fallo y su tratamiento están
+  documentados en la decisión de renderizado.
 
-Resultado del cierre
+### GitHub Actions
 
-El resultado final de las verificaciones se registrará después de ejecutar los comandos de cierre. El SHA del commit de cierre se incorporará en este apartado una vez realizado el commit final.
+El workflow oficial está en
+`.github/workflows/week-04-w04-csr-ssr.yml`. Su contenido se conserva sin
+modificaciones y el PR #9 ejecuta los criterios AC-01, AC-02 y AC-03.
