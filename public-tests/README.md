@@ -4,7 +4,7 @@ Este directorio contiene comprobaciones públicas de estructura para la entrega 
 
 ## Objetivo
 
-El script `check.sh` ejecuta la comprobación estructural acumulativa y verifica que permanezcan disponibles los archivos requeridos de las semanas anteriores y los artefactos incorporados durante la Semana 3.
+El script `check.sh` ejecuta la comprobación estructural acumulativa y verifica que permanezcan disponibles los archivos requeridos de las semanas anteriores y los artefactos incorporados progresivamente hasta la Semana 5.
 
 La comprobación no sustituye `npm test`, el build ni la revisión documental. Tampoco certifica automáticamente la ausencia de secretos.
 
@@ -52,3 +52,11 @@ La Semana 3 incorpora consulta offline y una estrategia de caché basada en el S
 `docs/cache-strategy.md` documenta las decisiones de caché, los recursos precacheados, las navegaciones, los recursos estáticos y las solicitudes excluidas.
 
 El script público comprueba la presencia de estos artefactos para evitar que una entrega acumulativa pierda archivos necesarios de semanas anteriores.
+
+## Semana 5 — incremento de almacenamiento
+
+El primer incremento de Semana 5 incorpora `src/lib/storage/schema.ts`,
+`src/lib/sync/queue.ts` y `tests/sync.spec.ts`. La prueba comprueba el guardado
+local, la recuperación de la cola y la prevención de duplicados mediante una
+clave idempotente. Los reintentos, la política de conflictos y la documentación
+final se incorporarán en los siguientes incrementos del equipo.
