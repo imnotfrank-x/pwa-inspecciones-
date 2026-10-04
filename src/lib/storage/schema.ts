@@ -7,7 +7,8 @@ export type SyncOperationState =
   | "pending"
   | "syncing"
   | "retry"
-  | "failed";
+  | "failed"
+  | "conflict";
 
 export type OfflineInspectionDraft = {
   id: string;
@@ -23,6 +24,13 @@ export type StoredInspection = OfflineInspectionDraft & {
   version: number;
   updatedAt: string;
   syncState: InspectionSyncState;
+  serverVersion?: number;
+  serverUpdatedAt?: string;
+};
+
+export type StoredConflict = {
+  remoteInspection: StoredInspection;
+  detectedAt: string;
 };
 
 export type SyncOperation = {
@@ -38,6 +46,7 @@ export type SyncOperation = {
   createdAt: string;
   updatedAt: string;
   lastError?: string;
+  conflict?: StoredConflict;
 };
 
 export type SyncSnapshot = {
@@ -136,6 +145,12 @@ export function assertStoredInspection(
   const inspection = value as unknown as Record<string, unknown>;
   assertNonNegativeInteger(inspection.version, "inspection.version");
   assertIsoDate(inspection.updatedAt, "inspection.updatedAt");
+  if (inspection.serverVersion !== undefined) {
+    assertNonNegativeInteger(inspection.serverVersion, "inspection.serverVersion");
+  }
+  if (inspection.serverUpdatedAt !== undefined) {
+    assertIsoDate(inspection.serverUpdatedAt, "inspection.serverUpdatedAt");
+  }
 
   if (
     inspection.syncState !== "pending" &&
@@ -184,7 +199,8 @@ export function assertSyncOperation(
     value.state !== "pending" &&
     value.state !== "syncing" &&
     value.state !== "retry" &&
-    value.state !== "failed"
+    value.state !== "failed" &&
+    value.state !== "conflict"
   ) {
     throw new SyncSchemaError(
       "operation.state contiene un estado no soportado."
@@ -196,6 +212,16 @@ export function assertSyncOperation(
 
   if (value.lastError !== undefined) {
     assertNonEmptyString(value.lastError, "operation.lastError", 500);
+  }
+  if (value.conflict !== undefined) {
+    if (!isRecord(value.conflict)) {
+      throw new SyncSchemaError("operation.conflict debe ser un objeto.");
+    }
+    assertStoredInspection(value.conflict.remoteInspection);
+    assertIsoDate(value.conflict.detectedAt, "operation.conflict.detectedAt");
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value.conflict.detectedAt)) {
+      throw new SyncSchemaError("operation.conflict.detectedAt debe ser una fecha ISO.");
+    }
   }
 }
 
