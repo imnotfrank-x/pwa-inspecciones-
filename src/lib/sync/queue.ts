@@ -232,12 +232,76 @@ export class InspectionSyncQueue {
       : undefined;
   }
 
-  async getSnapshot(): Promise<SyncSnapshot> {
+    async getSnapshot(): Promise<SyncSnapshot> {
     return cloneSyncSnapshot(await this.storage.load());
   }
 
-  syncPending(transport: SyncTransport, retryOptions: RetryOptions = {}): Promise<SyncSummary> {
-    if (this.activeSync) {
+  async resolveConflict(
+    operationId: string,
+    resolvedIdempotencyKey?: string
+  ): Promise<import("./conflict-policy").ConflictDecision> {
+    if (!operationId.trim()) {
+      throw new TypeError("operationId es obligatorio.");
+    }
+
+    return this.serializeWrite(async () => {
+      const snapshot = await this.storage.load();
+
+      const operation = snapshot.operations.find(
+        (item) => item.id === operationId
+      );
+
+      if (!operation) {
+        throw new TypeError(
+          `No existe la operación ${operationId}.`
+        );
+      }
+
+      if (operation.state !== "conflict" || !operation.conflict) {
+        throw new TypeError(
+          "La operación no tiene un conflicto pendiente de resolver."
+        );
+      }
+
+      const localInspection = snapshot.inspections.find(
+        (item) => item.id === operation.entityId
+      );
+
+      if (!localInspection) {
+        throw new TypeError(
+          `No existe la inspección local ${operation.entityId}.`
+        );
+      }
+
+      const remoteInspection = operation.conflict.remoteInspection;
+
+      assertStoredInspection(localInspection);
+      assertStoredInspection(remoteInspection);
+
+      const { resolveInspectionConflict } = require("./conflict-policy") as typeof import("./conflict-policy");
+
+      const decision = resolveInspectionConflict(
+        localInspection,
+        remoteInspection
+      );
+
+      const resolvedAt = assertValidDate(this.now(), "now");
+
+      const { applyConflictResolution } = require("./conflict-resolution") as typeof import("./conflict-resolution");
+
+      const resolvedSnapshot = applyConflictResolution(snapshot, {
+        operationId,
+        resolvedIdempotencyKey,
+        resolvedAt
+      });
+
+      await this.storage.save(resolvedSnapshot);
+
+      return decision;
+    });
+  }
+
+  syncPending(transport: SyncTransport, retryOptions: RetryOptions = {}): Promise<SyncSummary> {    if (this.activeSync) {
       return this.activeSync;
     }
     const execution = Promise.resolve().then(() =>
