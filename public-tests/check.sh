@@ -34,6 +34,9 @@ required_files=(
   "src/lib/storage/schema.ts"
   "src/lib/sync/queue.ts"
   "tests/sync.spec.ts"
+  "src/lib/sync/conflict-policy.ts"
+  "docs/sync-policy.md"
+  ".github/workflows/week-05-w05-sync-data.yml"
 )
 
 for file in "${required_files[@]}"; do
