@@ -23,7 +23,7 @@ function assertValidDate(value: string, field: string): string {
   const date = new Date(value);
 
   if (!Number.isFinite(date.getTime())) {
-    throw new TypeError(`${field} debe ser una fecha v·lida.`);
+    throw new TypeError(`${field} debe ser una fecha v√°lida.`);
   }
 
   return date.toISOString();
@@ -49,13 +49,13 @@ export function applyConflictResolution(
 
   if (!operation) {
     throw new TypeError(
-      `No existe la operaciÛn ${options.operationId}.`
+      `No existe la operaci√≥n ${options.operationId}.`
     );
   }
 
   if (operation.state !== "conflict" || !operation.conflict) {
     throw new TypeError(
-      "La operaciÛn no tiene un conflicto pendiente de resolver."
+      "La operaci√≥n no tiene un conflicto pendiente de resolver."
     );
   }
 
@@ -72,7 +72,7 @@ export function applyConflictResolution(
 
     if (newIdempotencyKey === originalIdempotencyKey) {
       throw new TypeError(
-        "La resoluciÛn de conflicto no puede reutilizar la clave idempotente original."
+        "La resoluci√≥n de conflicto no puede reutilizar la clave idempotente original."
       );
     }
   }
@@ -83,18 +83,18 @@ export function applyConflictResolution(
 
   if (!localInspection) {
     throw new TypeError(
-      `No existe la inspecciÛn local ${operation.entityId}.`
+      `No existe la inspecci√≥n local ${operation.entityId}.`
     );
   }
 
   assertStoredInspection(localInspection);
 
   /*
-   * Si existe una ediciÛn local posterior a la operaciÛn
-   * que generÛ el conflicto, esa ediciÛn tiene prioridad.
+   * Si existe una edici√≥n local posterior a la operaci√≥n
+   * que gener√≥ el conflicto, esa edici√≥n tiene prioridad.
    *
-   * En ese caso solamente retiramos la operaciÛn antigua.
-   * La operaciÛn nueva se conserva exactamente como est·.
+   * En ese caso solamente retiramos la operaci√≥n antigua.
+   * La operaci√≥n nueva se conserva exactamente como est√°.
    */
   const hasNewerLocalEdit =
     localInspection.updatedAt !== operation.payload.updatedAt;
@@ -125,8 +125,8 @@ export function applyConflictResolution(
 
   /*
    * Gana el remoto.
-   * Se elimina la operaciÛn en conflicto y se conserva
-   * la versiÛn remota como sincronizada.
+   * Se elimina la operaci√≥n en conflicto y se conserva
+   * la versi√≥n remota como sincronizada.
    */
   if (decision.winner === "remote") {
     const resolvedRemote = decision.resolvedInspection;
@@ -148,11 +148,11 @@ export function applyConflictResolution(
   /*
    * Gana el local.
    * Se necesita una nueva clave de idempotencia para
-   * volver a enviar la versiÛn local contra la versiÛn remota.
+   * volver a enviar la versi√≥n local contra la versi√≥n remota.
    */
   if (!newIdempotencyKey) {
     throw new TypeError(
-      "Se requiere una nueva idempotencyKey cuando gana la versiÛn local."
+      "Se requiere una nueva idempotencyKey cuando gana la versi√≥n local."
     );
   }
 
