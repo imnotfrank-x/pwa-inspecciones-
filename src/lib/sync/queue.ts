@@ -232,7 +232,7 @@ export class InspectionSyncQueue {
       : undefined;
   }
 
-    async getSnapshot(): Promise<SyncSnapshot> {
+  async getSnapshot(): Promise<SyncSnapshot> {
     return cloneSyncSnapshot(await this.storage.load());
   }
 
@@ -301,7 +301,8 @@ export class InspectionSyncQueue {
     });
   }
 
-  syncPending(transport: SyncTransport, retryOptions: RetryOptions = {}): Promise<SyncSummary> {    if (this.activeSync) {
+  syncPending(transport: SyncTransport, retryOptions: RetryOptions = {}): Promise<SyncSummary> {
+    if (this.activeSync) {
       return this.activeSync;
     }
     const execution = Promise.resolve().then(() =>

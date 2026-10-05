@@ -465,4 +465,4 @@ Francisco: `d3c0e64`.
 
 Javier: `4704d3d` y `b18fff3`.
 
-Carlos: los SHA del cierre de esta implementación se registrarán después de crear los commits correspondientes.
+Carlos: implementación f0d38e7ee4a65c536a09fabd0d4a90526658dc9b; cierre documental 3159ac90f7a79efb458877b9188a480750b6cf1f; evidencia inicial 14132c50354245cb9249b46bd15ff554b3c1be91; corrección posterior a revisión c8041d1090d41e86fc8026499235411ad024e66c.

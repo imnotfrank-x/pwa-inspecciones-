@@ -163,6 +163,8 @@ Utilicé IA como apoyo para estructurar y redactar el documento de requisitos y 
 
 * **SHA de implementación:** `f0d38e7ee4a65c536a09fabd0d4a90526658dc9b`.
 * **SHA de cierre documental:** `3159ac90f7a79efb458877b9188a480750b6cf1f`.
+* **SHA de corrección posterior a revisión:** `c8041d1090d41e86fc8026499235411ad024e66c`.
+* **Corrección posterior a revisión:** Convertí `src/lib/sync/conflict-resolution.ts` a UTF-8 válido y normalicé el formato de `getSnapshot` y `syncPending` en `src/lib/sync/queue.ts`, sin modificar la lógica de sincronización o resolución de conflictos.
 * **Archivos modificados:** `src/lib/sync/conflict-policy.ts`, `src/lib/sync/conflict-resolution.ts`, `src/lib/sync/queue.ts`, `tests/conflict-resolution.spec.ts`, `package.json`, `docs/sync-policy.md`, `scripts/verify.mjs`, `public-tests/check.sh`, `README.md` y `.github/workflows/week-05-w05-sync-data.yml`.
 * **Política de conflictos que puedo explicar:** Primero se compara `version`; si es igual, se compara `updatedAt`; si ambos valores son exactamente iguales, gana remoto mediante `server-tie-break`. El desempate remoto no significa que el servidor sea siempre más correcto; se utiliza para garantizar un resultado determinista y reproducible.
 * **Razón para generar otra clave idempotente al rebasar:** Cuando gana la versión local, la operación original ya corresponde a un intento que terminó en conflicto. Reutilizar su `idempotencyKey` podría hacer que el nuevo envío se confundiera con la operación anterior. Por eso se elimina la operación conflictiva y se crea una nueva operación `pending` con una clave diferente, `attemptCount = 0` y `baseVersion` igual a la versión remota.
