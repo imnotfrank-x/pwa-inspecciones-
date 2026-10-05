@@ -31,6 +31,12 @@ required_files=(
   "tests/offline.spec.ts"
   "tests/rendering.spec.ts"
   ".github/workflows/week-04-w04-csr-ssr.yml"
+  "src/lib/storage/schema.ts"
+  "src/lib/sync/queue.ts"
+  "tests/sync.spec.ts"
+  "src/lib/sync/conflict-policy.ts"
+  "docs/sync-policy.md"
+  ".github/workflows/week-05-w05-sync-data.yml"
 )
 
 for file in "${required_files[@]}"; do
