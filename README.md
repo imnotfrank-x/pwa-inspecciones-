@@ -337,3 +337,132 @@ La decisión completa está documentada en `docs/rendering-decision.md`.
 El workflow oficial está en
 `.github/workflows/week-04-w04-csr-ssr.yml`. Su contenido se conserva sin
 modificaciones y el PR #9 ejecuta los criterios AC-01, AC-02 y AC-03.
+
+## Semana 5 — Persistencia local y sincronización idempotente
+
+### Qué se implementó
+
+Se incorporó persistencia local de inspecciones mediante `localStorage`, una cola de sincronización idempotente, reintentos, recuperación de operaciones interrumpidas, sincronización al recuperar conectividad y una política determinista de resolución de conflictos.
+
+La resolución compara primero `version`, después `updatedAt` y, ante un empate exacto, selecciona remoto como desempate determinista. Esto no significa que el servidor sea siempre más correcto; se utiliza para garantizar un resultado reproducible.
+
+### Archivos principales
+
+* `src/lib/storage/schema.ts`
+* `src/lib/sync/queue.ts`
+* `src/lib/sync/conflict-policy.ts`
+* `src/lib/sync/conflict-resolution.ts`
+* `tests/sync.spec.ts`
+* `tests/conflict-resolution.spec.ts`
+* `docs/sync-policy.md`
+* `scripts/verify.mjs`
+* `public-tests/check.sh`
+* `.github/workflows/week-05-w05-sync-data.yml`
+
+### Cómo funciona la cola
+
+El estado local se conserva como un `SyncSnapshot` con inspecciones y operaciones.
+
+Cada operación utiliza una `idempotencyKey` para evitar duplicados. Los estados de la cola son `pending`, `syncing`, `retry`, `failed` y `conflict`.
+
+Si una operación queda en `syncing` por una interrupción, la cola la recupera como `retry` y conserva la misma clave idempotente.
+
+El transporte se inyecta mediante `SyncTransport`, por lo que las pruebas no dependen de un backend privado.
+
+El evento `online` activa `syncPending()` para intentar procesar las operaciones pendientes.
+
+### Política de reintentos
+
+Configuración predeterminada:
+
+* `maxAttempts = 5`
+* `baseDelayMs = 1000 ms`
+* `maxDelayMs = 60000 ms`
+
+La fórmula utilizada es:
+
+`delay = min(baseDelayMs * 2^(attemptCount - 1), maxDelayMs)`
+
+Los errores recuperables generan reintentos y los errores fatales pasan a `failed`.
+
+### Política de conflictos
+
+La resolución es determinista:
+
+1. Mayor `version`.
+2. Si la versión coincide, mayor `updatedAt`.
+3. Si ambos valores coinciden exactamente, gana remoto mediante `server-tie-break`.
+
+El desempate remoto no significa que el servidor sea siempre más correcto; se usa porque proporciona un resultado determinista ante un empate completo.
+
+Cuando gana remoto, se elimina la operación conflictiva y la inspección queda `synced`.
+
+Cuando gana local, se elimina la operación conflictiva y se crea una nueva operación `pending` con una nueva `idempotencyKey`, `attemptCount = 0` y `baseVersion` igual a la versión remota.
+
+Una edición local posterior queda protegida para evitar que una respuesta antigua sobrescriba una mutación más reciente.
+
+### Ejecución y pruebas
+
+Comandos de referencia:
+
+```bash
+npm ci --ignore-scripts --no-audit --no-fund
+npm test
+npm run test -- --run
+npm run build
+make verify
+bash public-tests/check.sh
+```
+
+En el entorno Windows utilizado para esta entrega, `make` no está disponible; el equivalente reproducido para la verificación acumulativa fue:
+
+```bash
+node scripts/verify.mjs
+```
+
+### Resultados reales
+
+`npx tsc --noEmit` terminó sin errores.
+
+`npm test` terminó con todas las pruebas en `PASS`.
+
+`npm run test -- --run` terminó con todas las pruebas en `PASS`.
+
+`node scripts/verify.mjs` terminó con `Verificación técnica: pass`.
+
+El build de Next.js 14.2.35 compiló correctamente y validó los tipos.
+
+El check público acumulativo terminó con:
+
+```text
+Estructura acumulativa correcta.
+PUBLIC_OK
+```
+
+El workflow oficial de Semana 5 conserva el SHA-256 esperado:
+
+```text
+86258e52bbae322de17540dae8bc9cd953716b2b3f6c950192e38ad16f0ddc42
+```
+
+### Datos sintéticos
+
+Todas las inspecciones utilizadas en esta actividad son sintéticas.
+
+No se incluyen secretos, tokens ni datos personales reales en el almacenamiento, las pruebas, la documentación o la evidencia.
+
+### Limitaciones
+
+`localStorage` tiene capacidad limitada y sus operaciones son síncronas. La solución es adecuada para el alcance pequeño y sintético de esta actividad, pero no para grandes volúmenes de datos.
+
+No existe un backend real con deduplicación de `idempotencyKey`, consistencia distribuida ni sincronización entre múltiples dispositivos.
+
+El check público del kit puede producir falsos positivos al detectar palabras relacionadas con credenciales dentro de documentación, pruebas o `package-lock.json`. Esta limitación se documenta y no se oculta eliminando contenido legítimo.
+
+### SHA de los integrantes
+
+Francisco: `d3c0e64`.
+
+Javier: `4704d3d` y `b18fff3`.
+
+Carlos: implementación f0d38e7ee4a65c536a09fabd0d4a90526658dc9b; cierre documental 3159ac90f7a79efb458877b9188a480750b6cf1f; evidencia inicial 14132c50354245cb9249b46bd15ff554b3c1be91; corrección posterior a revisión c8041d1090d41e86fc8026499235411ad024e66c.
