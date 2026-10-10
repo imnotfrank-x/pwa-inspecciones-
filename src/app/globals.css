@@ -444,6 +444,109 @@ dd { font-size: .82rem; font-weight: 700; margin: 0; text-align: right; }
   border-style: dashed;
 }
 
+.capabilities-panel {
+  border-top: 1px solid var(--line);
+  padding: 32px 38px 38px;
+}
+
+.capabilities-panel .eyebrow {
+  color: var(--accent);
+}
+
+.capabilities-panel h2 {
+  font-size: 1.45rem;
+  margin-bottom: 12px;
+}
+
+.capabilities-description,
+.capability-privacy-note {
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 680px;
+}
+
+.capability-control {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 20px 0 14px;
+}
+
+.capability-file-label,
+.capability-secondary-action {
+  align-items: center;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 16px;
+}
+
+.capability-file-label {
+  background: var(--accent);
+  border: 2px solid var(--accent);
+  color: #ffffff;
+}
+
+.capability-file-label:hover {
+  background: #2445b5;
+  border-color: #2445b5;
+}
+
+.capability-control input[type="file"] {
+  color: var(--muted);
+  font: inherit;
+  max-width: 100%;
+}
+
+.capability-file-label:focus-within,
+.capability-control input[type="file"]:focus-visible,
+.capability-secondary-action:focus-visible {
+  outline: 3px solid #172b62;
+  outline-offset: 3px;
+}
+
+.capability-feedback {
+  background: #f8faff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 14px 0;
+  padding: 14px 16px;
+}
+
+.capability-feedback p {
+  margin-bottom: 10px;
+}
+
+.capability-feedback-success {
+  background: var(--success-soft);
+  border-color: #9bd0b2;
+  color: var(--success);
+}
+
+.capability-feedback-error {
+  background: var(--warning-soft);
+  border-color: #e4b866;
+  color: var(--warning);
+}
+
+.capability-secondary-action {
+  background: #ffffff;
+  border: 2px solid currentColor;
+  color: var(--success);
+}
+
+.capability-privacy-note {
+  font-size: 0.85rem;
+  margin: 18px 0 0;
+}
+
 @media (max-width: 760px) {
   .page-shell {
     padding: 20px 16px;
@@ -483,6 +586,15 @@ dd { font-size: .82rem; font-weight: 700; margin: 0; text-align: right; }
 
   .inspection-detail-content {
     padding: 24px 22px 28px;
+  }
+
+  .capabilities-panel {
+    padding: 24px 22px 28px;
+  }
+
+  .capability-control {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .inspection-detail-list {

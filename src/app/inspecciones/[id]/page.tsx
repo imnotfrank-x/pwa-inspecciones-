@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getInspectionById } from "../../../lib/data/inspection-detail";
+import { InspectionCapabilities } from "../../../components/inspection-capabilities";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +77,8 @@ export default async function InspectionDetailPage({
             </div>
           </dl>
         </section>
+
+        <InspectionCapabilities inspectionId={inspection.id} />
       </article>
     </div>
   );

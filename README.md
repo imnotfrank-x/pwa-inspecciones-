@@ -466,3 +466,55 @@ Francisco: `d3c0e64`.
 Javier: `4704d3d` y `b18fff3`.
 
 Carlos: implementación f0d38e7ee4a65c536a09fabd0d4a90526658dc9b; cierre documental 3159ac90f7a79efb458877b9188a480750b6cf1f; evidencia inicial 14132c50354245cb9249b46bd15ff554b3c1be91; corrección posterior a revisión c8041d1090d41e86fc8026499235411ad024e66c.
+
+## Semana 6 — Capacidades opcionales y permisos mínimos
+
+### Incremento inicial: evidencia fotográfica
+
+El detalle de una inspección incorpora un panel cliente para adjuntar evidencia fotográfica opcional. El control utiliza `accept="image/*"` y `capture="environment"`: un dispositivo compatible puede ofrecer la cámara trasera después del gesto de la persona, mientras que los demás navegadores conservan el selector de archivos como fallback.
+
+`src/lib/device/camera.ts` separa la detección de soporte de la solicitud efectiva. `getCameraAvailability()` no solicita permisos; `requestCameraAccess()` solo debe invocarse desde una acción explícita y transforma los rechazos esperados en resultados controlados. `stopCameraStream()` intenta detener todas las pistas.
+
+La validación admite JPEG, PNG y WebP con un máximo predeterminado de 5 MB. La imagen permanece en memoria, no se transforma a Base64, no se almacena en `localStorage` y no se transmite a un servidor.
+
+### Estados verificables de cámara
+
+- Sin evidencia: la inspección continúa normalmente.
+- Evidencia válida: se informa tipo y tamaño sin mostrar el nombre del archivo.
+- Cancelación: se conserva un flujo funcional sin error global.
+- Tipo o tamaño inválido: se anuncia un mensaje accesible.
+- API ausente o permiso rechazado: se ofrece selección de archivo.
+
+### Verificación del incremento de Francisco
+
+Comandos ejecutados con Node.js `20.19.0` y npm `10.8.2`:
+
+```bash
+npm ci
+npm test
+npm run test -- --run
+npx tsc --noEmit
+npm run build
+make verify
+bash public-tests/check.sh
+```
+
+`tests/capabilities.spec.ts` utiliza implementaciones sintéticas de `getUserMedia`, archivos y pistas. No activa una cámara real ni muestra solicitudes de permiso durante la prueba.
+
+Resultados observados:
+
+- `npm ci`: código 0; instalación limpia completada. npm informó tres hallazgos de auditoría heredados (dos altos y uno crítico), que no se corrigieron automáticamente para evitar cambios de dependencias fuera del alcance.
+- `npm test`: código 0; las diez pruebas acumulativas terminaron en `PASS`.
+- `npm run test -- --run`: código 0; las mismas diez pruebas terminaron en `PASS` y el argumento adicional fue aceptado.
+- `npx tsc --noEmit`: código 0, sin errores de tipos.
+- `npm run build`: código 0; Next.js compiló y mantuvo `/inspecciones/[id]` como ruta SSR dinámica.
+- `make verify`: código 0 y resultado `Verificación técnica: pass`.
+- `bash public-tests/check.sh`: código 0 y resultado `PUBLIC_OK`.
+- Revisión manual: `/inspecciones/inspection-001` respondió correctamente, el panel fue visible a 375 px sin desbordamiento horizontal y no se registraron errores de consola.
+
+### Límites del incremento inicial
+
+- El atributo `capture` es una sugerencia y su comportamiento depende del navegador.
+- La evidencia se pierde al recargar porque todavía no forma parte del esquema persistente.
+- No se comprime la imagen ni se sincronizan archivos con un backend.
+- Geolocalización y notificaciones se integrarán en los siguientes incrementos del equipo.
