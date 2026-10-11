@@ -42,7 +42,58 @@ Si la captura directa no existe, falla o es rechazada, se mantiene el selector d
 
 ## 4. Geolocalización
 
-Esta sección será completada en el incremento de Javier. La política acordada utilizará una lectura puntual iniciada por botón, precisión reducida y entrada manual como alternativa. No se utilizará seguimiento continuo.
+### Decisión técnica
+
+La geolocalización se concibe como un dato complementario y estrictamente opcional dentro de la ficha de inspección. La arquitectura delega la obtención en `src/lib/device/geolocation.ts` y presenta la funcionalidad en `src/components/inspection-capabilities.tsx`. 
+
+Se optó deliberadamente por una lectura puntual mediante `navigator.geolocation.getCurrentPosition()`, excluyendo por contrato cualquier uso de `watchPosition()` para prevenir consumo sostenido de batería y rastreo continuo innecesario.
+
+### Momento en que se solicita permiso
+
+El permiso de ubicación nunca se solicita durante el renderizado inicial, la importación del módulo ni la consulta pasiva de compatibilidad (`getGeolocationAvailability()`). La petición sólo se activa cuando la persona usuaria pulsa de forma explícita el botón "Usar ubicación actual".
+
+### Opciones utilizadas
+
+Para evitar sobrecarga de hardware, tiempo de espera excesivo y recopilación invasiva, la llamada se configura con las opciones mínimas acordadas:
+
+```ts
+{
+  enableHighAccuracy: false,
+  timeout: 10000,
+  maximumAge: 60000
+}
+```
+
+- `enableHighAccuracy: false`: prioriza rapidez y bajo consumo sobre precisión métrica vía GPS.
+- `timeout: 10000`: cancela la consulta si el dispositivo o red tardan más de 10 segundos.
+- `maximumAge: 60000`: admite una lectura en caché de hasta 1 minuto para evitar accesos redundantes al hardware.
+
+### Reducción de precisión
+
+Por principio de minimización de datos y privacidad, las coordenadas se truncan y redondean a tres decimales (`roundCoordinate(val, 3)`). Esto ofrece una referencia aproximada a nivel de cuadrante o instalación (orden de ~100 metros) y descarta la precisión milimétrica que no es requerida para una inspección general.
+
+### Fallback manual
+
+Si el dispositivo no cuenta con hardware de ubicación, la persona usuaria rechaza el permiso o el servicio experimenta fallas, la interfaz presenta un campo de texto para ingresar una referencia sintética manual (por ejemplo, "Laboratorio B, planta 2"). La inspección permanece 100% operativa sin requerir coordenadas.
+
+### Privacidad y persistencia
+
+Las coordenadas obtenidas residen únicamente en el estado en memoria de React mientras la vista se encuentra activa. No se escriben en `localStorage`, no se serializan en el esquema persistente, no se añaden a la cola de sincronización y no se envían a ningún servidor externo. Tampoco se registran coordenadas reales durante pruebas automatizadas.
+
+### Casos de error
+
+Los códigos de error estándar de la Web Geolocation API se mapean a estados controlados con mensajes comprensibles y retroalimentación accesible (`role="alert"`):
+- Código 1 (`PERMISSION_DENIED`) → `permission-denied`: mensaje explicativo indicando que la inspección puede continuar y sugiriendo la referencia manual.
+- Código 2 (`POSITION_UNAVAILABLE`) → `position-unavailable`: mensaje indicando indisponibilidad temporal.
+- Código 3 (`TIMEOUT`) → `timeout`: aviso de tiempo excedido con posibilidad de reintentar o usar entrada manual.
+- Ausencia de API (`navigator.geolocation` inexistente) → `unsupported`.
+- Excepciones no controladas → `unexpected-error`.
+
+### Límites conocidos
+
+- La exactitud real depende de los proveedores de geolocalización y conectividad del sistema operativo y navegador.
+- Al no persistir las coordenadas en el esquema de almacenamiento local, el valor se pierde al recargar o abandonar la página.
+- El soporte en navegadores de escritorio puede variar si los servicios de ubicación del sistema operativo están desactivados a nivel global.
 
 ## 5. Notificaciones
 

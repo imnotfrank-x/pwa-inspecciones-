@@ -517,4 +517,71 @@ Resultados observados:
 - El atributo `capture` es una sugerencia y su comportamiento depende del navegador.
 - La evidencia se pierde al recargar porque todavía no forma parte del esquema persistente.
 - No se comprime la imagen ni se sincronizan archivos con un backend.
-- Geolocalización y notificaciones se integrarán en los siguientes incrementos del equipo.
+- Notificaciones se integrarán en el siguiente incremento del equipo.
+
+### Incremento de Javier: geolocalización opcional y permisos mínimos
+
+Se incorporó geolocalización puntual y opcional para enriquecer la ficha de inspección con una referencia espacial aproximada, garantizando que la aplicación continúe funcionando sin errores si la persona usuaria rechaza el permiso o el dispositivo no cuenta con hardware de ubicación.
+
+#### Qué se implementó
+
+- **Módulo de dispositivo (`src/lib/device/geolocation.ts`):**
+  - Consulta de disponibilidad sin solicitar permiso (`getGeolocationAvailability()`).
+  - Lectura puntual mediante `getCurrentPosition`; se excluye deliberadamente `watchPosition` para evitar seguimiento continuo y consumo innecesario de batería.
+  - Opciones de bajo consumo y mínima intrusión: `{ enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }`.
+  - Reducción de precisión: las coordenadas se truncan y redondean a 3 decimales (`~100 m`) antes de exponerse a la vista.
+  - Conversión a resultado controlado discriminado: `success`, `unsupported`, `permission-denied`, `position-unavailable`, `timeout` y `unexpected-error`.
+  - Soporte para inyección sintética de proveedor de geolocalización en pruebas.
+  - La posición nunca se almacena en `localStorage` ni se envía a servidores.
+  - La importación del módulo no ejecuta llamadas a la API del navegador.
+
+- **Componente cliente (`src/components/inspection-capabilities.tsx`):**
+  - Sección accesible "Ubicación aproximada" dentro del panel de capacidades.
+  - Botón de acción explícita "Usar ubicación actual" (único punto donde se solicita permiso al navegador).
+  - Estado de carga interactivo con `aria-busy="true"` y texto indicativo.
+  - Muestra de coordenadas aproximadas redondeadas con opción de descartar.
+  - Retroalimentación accesible para errores (`role="alert"`) y estados informativos (`role="status"`, `aria-live="polite"`).
+  - Campo de entrada para referencia sintética manual como fallback cuando el permiso es denegado o no existe la API.
+  - Nota visible de privacidad indicando que la ubicación no se guarda ni se transmite.
+
+#### Cómo reproducirlo
+
+1. Ejecutar `npm run dev` y abrir `http://localhost:3000/inspecciones/inspection-001`.
+2. En la parte inferior, localizar la sección "Ubicación aproximada".
+3. Observar el estado inicial que indica que el dato es opcional.
+4. Pulsar el botón **"Usar ubicación actual"**:
+   - Se muestra el estado de carga ("Obteniendo ubicación aproximada…").
+   - Si se concede el permiso, aparecen las coordenadas aproximadas a tres decimales y el botón "Descartar ubicación".
+   - Si se deniega el permiso o se simula un fallo, se muestra un mensaje explicativo accesible.
+5. Probar el campo de **Referencia manual (opcional)** escribiendo una ubicación sintética (ej. "Laboratorio B, planta 2").
+
+#### Pruebas ejecutadas
+
+La suite acumulativa `tests/capabilities.spec.ts` se amplió para verificar diez escenarios con proveedores y coordenadas sintéticas:
+1. Importar el módulo no solicita ubicación.
+2. Consultar disponibilidad no solicita permiso.
+3. La solicitud utiliza las opciones mínimas acordadas (`enableHighAccuracy: false`, `timeout: 10000`, `maximumAge: 60000`).
+4. Una respuesta correcta produce coordenadas aproximadas redondeadas a 3 decimales.
+5. El código de error 1 se transforma en `permission-denied`.
+6. El código de error 2 se transforma en `position-unavailable`.
+7. El código de error 3 se transforma en `timeout`.
+8. La ausencia de la API produce `unsupported`.
+9. No se utiliza `watchPosition` en ninguna circunstancia.
+10. El componente incorpora botón, estados de carga y error, fallback manual y nota de privacidad.
+
+#### Resultados reales
+
+Comandos ejecutados con Node.js `v20.19.0` y npm `10.8.2`:
+
+- `npm test`: código 0; las diez suites de pruebas pasaron en `PASS`, incluyendo `capabilities.spec.ts: cámara opcional + geolocalización opcional PASS`.
+- `npm run test -- --run`: código 0; las diez pruebas pasaron en `PASS` con el argumento del evaluador.
+- `npx tsc --noEmit`: código 0; sin errores de tipado en TypeScript.
+- `npm run build`: código 0; compiló correctamente, `/inspecciones/[id]` se generó como ruta dinámica bajo demanda (3.13 kB, 90.4 kB First Load JS).
+- `make verify` (y `node scripts/verify.mjs`): código 0; verificación técnica `pass`.
+- `bash public-tests/check.sh` (con Git Bash): código 0; salida `PUBLIC_OK`.
+
+#### Limitaciones
+
+- La compatibilidad y exactitud real dependen del dispositivo, del sistema operativo y del navegador web.
+- Las coordenadas no se persisten en `localStorage` ni en la cola de sincronización; se mantienen únicamente en memoria y se descartan al recargar o navegar.
+- La demostración utiliza coordenadas estrictamente sintéticas en las pruebas y no envía datos a ningún servidor externo.
