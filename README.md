@@ -466,3 +466,195 @@ Francisco: `d3c0e64`.
 Javier: `4704d3d` y `b18fff3`.
 
 Carlos: implementación f0d38e7ee4a65c536a09fabd0d4a90526658dc9b; cierre documental 3159ac90f7a79efb458877b9188a480750b6cf1f; evidencia inicial 14132c50354245cb9249b46bd15ff554b3c1be91; corrección posterior a revisión c8041d1090d41e86fc8026499235411ad024e66c.
+
+## Semana 6 — Capacidades opcionales y permisos mínimos
+
+### Incremento inicial: evidencia fotográfica
+
+El detalle de una inspección incorpora un panel cliente para adjuntar evidencia fotográfica opcional. El control utiliza `accept="image/*"` y `capture="environment"`: un dispositivo compatible puede ofrecer la cámara trasera después del gesto de la persona, mientras que los demás navegadores conservan el selector de archivos como fallback.
+
+`src/lib/device/camera.ts` separa la detección de soporte de la solicitud efectiva. `getCameraAvailability()` no solicita permisos; `requestCameraAccess()` solo debe invocarse desde una acción explícita y transforma los rechazos esperados en resultados controlados. `stopCameraStream()` intenta detener todas las pistas.
+
+La validación admite JPEG, PNG y WebP con un máximo predeterminado de 5 MB. La imagen permanece en memoria, no se transforma a Base64, no se almacena en `localStorage` y no se transmite a un servidor.
+
+### Estados verificables de cámara
+
+- Sin evidencia: la inspección continúa normalmente.
+- Evidencia válida: se informa tipo y tamaño sin mostrar el nombre del archivo.
+- Cancelación: se conserva un flujo funcional sin error global.
+- Tipo o tamaño inválido: se anuncia un mensaje accesible.
+- API ausente o permiso rechazado: se ofrece selección de archivo.
+
+### Verificación del incremento de Francisco
+
+Comandos ejecutados con Node.js `20.19.0` y npm `10.8.2`:
+
+```bash
+npm ci
+npm test
+npm run test -- --run
+npx tsc --noEmit
+npm run build
+make verify
+bash public-tests/check.sh
+```
+
+`tests/capabilities.spec.ts` utiliza implementaciones sintéticas de `getUserMedia`, archivos y pistas. No activa una cámara real ni muestra solicitudes de permiso durante la prueba.
+
+Resultados observados:
+
+- `npm ci`: código 0; instalación limpia completada. npm informó tres hallazgos de auditoría heredados (dos altos y uno crítico), que no se corrigieron automáticamente para evitar cambios de dependencias fuera del alcance.
+- `npm test`: código 0; las diez pruebas acumulativas terminaron en `PASS`.
+- `npm run test -- --run`: código 0; las mismas diez pruebas terminaron en `PASS` y el argumento adicional fue aceptado.
+- `npx tsc --noEmit`: código 0, sin errores de tipos.
+- `npm run build`: código 0; Next.js compiló y mantuvo `/inspecciones/[id]` como ruta SSR dinámica.
+- `make verify`: código 0 y resultado `Verificación técnica: pass`.
+- `bash public-tests/check.sh`: código 0 y resultado `PUBLIC_OK`.
+- Revisión manual: `/inspecciones/inspection-001` respondió correctamente, el panel fue visible a 375 px sin desbordamiento horizontal y no se registraron errores de consola.
+
+### Límites del incremento inicial
+
+- El atributo `capture` es una sugerencia y su comportamiento depende del navegador.
+- La evidencia se pierde al recargar porque todavía no forma parte del esquema persistente.
+- No se comprime la imagen ni se sincronizan archivos con un backend.
+- Notificaciones se integrarán en el siguiente incremento del equipo.
+
+### Incremento de Javier: geolocalización opcional y permisos mínimos
+
+Se incorporó geolocalización puntual y opcional para enriquecer la ficha de inspección con una referencia espacial aproximada, garantizando que la aplicación continúe funcionando sin errores si la persona usuaria rechaza el permiso o el dispositivo no cuenta con hardware de ubicación.
+
+#### Qué se implementó
+
+- **Módulo de dispositivo (`src/lib/device/geolocation.ts`):**
+  - Consulta de disponibilidad sin solicitar permiso (`getGeolocationAvailability()`).
+  - Lectura puntual mediante `getCurrentPosition`; se excluye deliberadamente `watchPosition` para evitar seguimiento continuo y consumo innecesario de batería.
+  - Opciones de bajo consumo y mínima intrusión: `{ enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }`.
+  - Reducción de precisión: las coordenadas se truncan y redondean a 3 decimales (`~100 m`) antes de exponerse a la vista.
+  - Conversión a resultado controlado discriminado: `success`, `unsupported`, `permission-denied`, `position-unavailable`, `timeout` y `unexpected-error`.
+  - Soporte para inyección sintética de proveedor de geolocalización en pruebas.
+  - La posición nunca se almacena en `localStorage` ni se envía a servidores.
+  - La importación del módulo no ejecuta llamadas a la API del navegador.
+
+- **Componente cliente (`src/components/inspection-capabilities.tsx`):**
+  - Sección accesible "Ubicación aproximada" dentro del panel de capacidades.
+  - Botón de acción explícita "Usar ubicación actual" (único punto donde se solicita permiso al navegador).
+  - Estado de carga interactivo con `aria-busy="true"` y texto indicativo.
+  - Muestra de coordenadas aproximadas redondeadas con opción de descartar.
+  - Retroalimentación accesible para errores (`role="alert"`) y estados informativos (`role="status"`, `aria-live="polite"`).
+  - Campo de entrada para referencia sintética manual como fallback cuando el permiso es denegado o no existe la API.
+  - Nota visible de privacidad indicando que la ubicación no se guarda ni se transmite.
+
+#### Cómo reproducirlo
+
+1. Ejecutar `npm run dev` y abrir `http://localhost:3000/inspecciones/inspection-001`.
+2. En la parte inferior, localizar la sección "Ubicación aproximada".
+3. Observar el estado inicial que indica que el dato es opcional.
+4. Pulsar el botón **"Usar ubicación actual"**:
+   - Se muestra el estado de carga ("Obteniendo ubicación aproximada…").
+   - Si se concede el permiso, aparecen las coordenadas aproximadas a tres decimales y el botón "Descartar ubicación".
+   - Si se deniega el permiso o se simula un fallo, se muestra un mensaje explicativo accesible.
+5. Probar el campo de **Referencia manual (opcional)** escribiendo una ubicación sintética (ej. "Laboratorio B, planta 2").
+
+#### Pruebas ejecutadas
+
+La suite acumulativa `tests/capabilities.spec.ts` se amplió para verificar diez escenarios con proveedores y coordenadas sintéticas:
+1. Importar el módulo no solicita ubicación.
+2. Consultar disponibilidad no solicita permiso.
+3. La solicitud utiliza las opciones mínimas acordadas (`enableHighAccuracy: false`, `timeout: 10000`, `maximumAge: 60000`).
+4. Una respuesta correcta produce coordenadas aproximadas redondeadas a 3 decimales.
+5. El código de error 1 se transforma en `permission-denied`.
+6. El código de error 2 se transforma en `position-unavailable`.
+7. El código de error 3 se transforma en `timeout`.
+8. La ausencia de la API produce `unsupported`.
+9. No se utiliza `watchPosition` en ninguna circunstancia.
+10. El componente incorpora botón, estados de carga y error, fallback manual y nota de privacidad.
+
+#### Resultados reales
+
+Comandos ejecutados con Node.js `v20.19.0` y npm `10.8.2`:
+
+- `npm test`: código 0; las diez suites de pruebas pasaron en `PASS`, incluyendo `capabilities.spec.ts: cámara opcional + geolocalización opcional PASS`.
+- `npm run test -- --run`: código 0; las diez pruebas pasaron en `PASS` con el argumento del evaluador.
+- `npx tsc --noEmit`: código 0; sin errores de tipado en TypeScript.
+- `npm run build`: código 0; compiló correctamente, `/inspecciones/[id]` se generó como ruta dinámica bajo demanda (3.13 kB, 90.4 kB First Load JS).
+- `make verify` (y `node scripts/verify.mjs`): código 0; verificación técnica `pass`.
+- `bash public-tests/check.sh` (con Git Bash): código 0; salida `PUBLIC_OK`.
+
+#### Limitaciones
+
+- La compatibilidad y exactitud real dependen del dispositivo, del sistema operativo y del navegador web.
+- Las coordenadas no se persisten en `localStorage` ni en la cola de sincronización; se mantienen únicamente en memoria y se descartan al recargar o navegar.
+- La demostración utiliza coordenadas estrictamente sintéticas en las pruebas y no envía datos a ningún servidor externo.
+
+### Cierre de Semana 6 — notificaciones opcionales
+
+La entrega integra tres capacidades progresivas y mantiene la inspección funcional cuando una API no existe, el permiso se rechaza o una operación falla:
+
+- **Cámara — Francisco:** evidencia fotográfica opcional en memoria, con selector de archivo como fallback. Commit de implementación: `6d4582533338dfca5d74cd2be5443e08d3df1635`.
+- **Geolocalización — Javier:** lectura puntual y aproximada, sin seguimiento continuo y con referencia manual como fallback. Commit de implementación: `fe8acd6eb8a9c4c8026d13cf89c91075cf4e935f`.
+- **Notificaciones y cierre — Carlos:** permiso bajo acción explícita, notificación sintética local, fallback dentro de la aplicación, pruebas y verificadores acumulativos. Commit de implementación: `7b76e75dca6d5a34f4c0329d2ac3be0927c14b64`.
+
+#### Archivos principales
+
+- `src/lib/device/camera.ts`
+- `src/lib/device/geolocation.ts`
+- `src/lib/notifications/client.ts`
+- `src/components/inspection-capabilities.tsx`
+- `tests/capabilities.spec.ts`
+- `docs/capabilities.md`
+- `.github/workflows/week-06-w06-device-push.yml`
+
+#### Flujo de permisos y fallbacks
+
+Consultar soporte no solicita permisos. Cámara se activa desde el selector; geolocalización se solicita con **Usar ubicación actual**; y notificaciones se solicitan únicamente con **Activar notificaciones**. Ningún módulo ejecuta una capacidad al importarse.
+
+Para notificaciones, un permiso `granted` habilita la prueba; `denied`, `dismissed`, `unsupported` o una excepción conservan la inspección y presentan un mensaje interno. La visualización intenta, en orden, `ServiceWorkerRegistration.showNotification()`, una notificación directa de ventana y el fallback accesible dentro de la ficha. La etiqueta `labinspect:<inspectionId>:status` es estable para reducir duplicados.
+
+La demostración usa IDs, ubicaciones, archivos y mensajes sintéticos. La notificación no incluye coordenadas ni imágenes. No se implementan Web Push remoto, suscripciones, claves VAPID, proveedores externos ni entrega garantizada en segundo plano.
+
+#### Instalación, ejecución y verificación
+
+Desde la carpeta que contiene `package.json`:
+
+```bash
+npm ci
+npm run dev
+```
+
+La demostración manual está disponible en `http://localhost:3000/inspecciones/inspection-001`. El servidor de desarrollo debe detenerse antes del build final.
+
+Verificación acumulativa:
+
+```bash
+npm test
+npm run test -- --run
+npx tsc --noEmit
+npm run build
+make verify
+bash public-tests/check.sh
+```
+
+El workflow oficial de la semana se conserva sin modificaciones en `.github/workflows/week-06-w06-device-push.yml`; su SHA-256 esperado es `cda79b0a9547ec24da3ee5d6fde05e1744eae3159bdb007a3a866080bce0f6a9`.
+
+#### Resultados reales del cierre de Carlos
+
+La validación se realizó con Node.js `v20.19.0` y npm `10.8.2`:
+
+- `npm ci`: código 0; instaló 28 paquetes y reportó tres vulnerabilidades heredadas —dos altas y una crítica— sin aplicar correcciones automáticas.
+- `npm test`: código 0; las diez suites acumulativas terminaron en `PASS`.
+- `npm run test -- --run`: código 0; las diez suites terminaron en `PASS` aceptando el argumento adicional.
+- `npx tsc --noEmit`: código 0; sin errores de tipos.
+- `npm run build`: código 0; Next.js 14.2.35 compiló y `/inspecciones/[id]` permaneció como ruta dinámica bajo demanda, con 4.39 kB propios y 91.6 kB de First Load JS.
+- `make verify`: no pudo iniciarse porque GNU Make no está instalado en el entorno Windows. El equivalente exacto `npm run verify` terminó con código 0 y `Verificación técnica: pass`.
+- `bash public-tests/check.sh`: se ejecutó con Git Bash, terminó con código 0 y mostró `PUBLIC_OK`.
+- `git diff --check`: terminó sin salida.
+
+La revisión manual confirmó que cámara, geolocalización y notificaciones aparecen en ese orden, que no se solicita permiso al cargar, que el botón de activación es visible, que no existen errores de consola y que a 375 px no hay desbordamiento horizontal (`innerWidth = 375`, `scrollWidth = 360`). El navegador integrado mantuvo pendiente su diálogo al intentar solicitar permiso; por ello la concesión y el rechazo reales deben repetirse en Chrome por Carlos antes de entregar. Los resultados `granted`, `denied`, `dismissed`, `unsupported` y `display-error` sí quedaron cubiertos mediante dependencias sintéticas en la prueba automatizada.
+
+#### Limitaciones del cierre
+
+- Los permisos persistentes y la presentación final dependen del navegador y del sistema operativo.
+- La selección de cámara, la ubicación y las notificaciones se mantienen como demostraciones locales; no se agregan al esquema de sincronización.
+- La PWA no garantiza ejecución en segundo plano.
+- Las pruebas automatizadas usan dependencias sintéticas: no activan hardware, permisos ni notificaciones reales.
+- La auditoría de npm informa vulnerabilidades heredadas; no se ejecuta `npm audit fix --force` porque cambiaría dependencias fuera del alcance de la actividad.
