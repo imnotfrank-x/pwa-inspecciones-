@@ -49,7 +49,12 @@ type NotificationState =
   | { status: "denied" | "unsupported"; message: string }
   | { status: "showing" }
   | { status: "shown"; message: string }
-  | { status: "error"; message: string; canRetryDisplay?: boolean };
+  | {
+      status: "error";
+      message: string;
+      canRetryDisplay?: boolean;
+      canRetryPermission?: boolean;
+    };
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) {
@@ -96,7 +101,11 @@ export function InspectionCapabilities({
       return;
     }
 
-    setNotification({ status: "error", message: result.message });
+    setNotification({
+      status: "error",
+      message: result.message,
+      canRetryPermission: true
+    });
   }
 
   async function handleShowNotification() {
@@ -335,7 +344,7 @@ export function InspectionCapabilities({
       </div>
 
       <div
-        aria-busy={notification.status === "requesting"}
+        aria-busy={notificationBusy}
         aria-labelledby={`${locationId}-notifications-heading`}
         className="capability-location"
         role="group"
@@ -349,7 +358,9 @@ export function InspectionCapabilities({
           permiso después de pulsar el botón.
         </p>
 
-        {notification.status === "idle" ? (
+        {notification.status === "idle" ||
+        (notification.status === "error" &&
+          notification.canRetryPermission) ? (
           <div className="capability-control">
             <button
               className="capability-file-label"
@@ -357,7 +368,9 @@ export function InspectionCapabilities({
               onClick={handleEnableNotifications}
               type="button"
             >
-              Activar notificaciones
+              {notification.status === "idle"
+                ? "Activar notificaciones"
+                : "Reintentar activación de notificaciones"}
             </button>
           </div>
         ) : null}

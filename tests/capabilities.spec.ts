@@ -639,8 +639,10 @@
     );
     assert.match(component, /Notificaciones de cambios/);
     assert.match(component, /Activar notificaciones/);
+    assert.match(component, /canRetryPermission/);
+    assert.match(component, /Reintentar activación de notificaciones/);
     assert.match(component, /Mostrar notificación de prueba/);
-    assert.match(component, /aria-busy=\{notification\.status === "requesting"\}/);
+    assert.match(component, /aria-busy=\{notificationBusy\}/);
     assert.match(component, /aria-live="polite"/);
     assert.match(component, /role="status"/);
     assert.match(component, /role="alert"/);
