@@ -592,7 +592,7 @@ La entrega integra tres capacidades progresivas y mantiene la inspección funcio
 
 - **Cámara — Francisco:** evidencia fotográfica opcional en memoria, con selector de archivo como fallback. Commit de implementación: `6d4582533338dfca5d74cd2be5443e08d3df1635`.
 - **Geolocalización — Javier:** lectura puntual y aproximada, sin seguimiento continuo y con referencia manual como fallback. Commit de implementación: `fe8acd6eb8a9c4c8026d13cf89c91075cf4e935f`.
-- **Notificaciones y cierre — Carlos:** permiso bajo acción explícita, notificación sintética local, fallback dentro de la aplicación, pruebas y verificadores acumulativos. El SHA se registra después de crear el commit técnico para no inventarlo.
+- **Notificaciones y cierre — Carlos:** permiso bajo acción explícita, notificación sintética local, fallback dentro de la aplicación, pruebas y verificadores acumulativos. Commit de implementación: `7b76e75dca6d5a34f4c0329d2ac3be0927c14b64`.
 
 #### Archivos principales
 
