@@ -585,3 +585,76 @@ Comandos ejecutados con Node.js `v20.19.0` y npm `10.8.2`:
 - La compatibilidad y exactitud real dependen del dispositivo, del sistema operativo y del navegador web.
 - Las coordenadas no se persisten en `localStorage` ni en la cola de sincronización; se mantienen únicamente en memoria y se descartan al recargar o navegar.
 - La demostración utiliza coordenadas estrictamente sintéticas en las pruebas y no envía datos a ningún servidor externo.
+
+### Cierre de Semana 6 — notificaciones opcionales
+
+La entrega integra tres capacidades progresivas y mantiene la inspección funcional cuando una API no existe, el permiso se rechaza o una operación falla:
+
+- **Cámara — Francisco:** evidencia fotográfica opcional en memoria, con selector de archivo como fallback. Commit de implementación: `6d4582533338dfca5d74cd2be5443e08d3df1635`.
+- **Geolocalización — Javier:** lectura puntual y aproximada, sin seguimiento continuo y con referencia manual como fallback. Commit de implementación: `fe8acd6eb8a9c4c8026d13cf89c91075cf4e935f`.
+- **Notificaciones y cierre — Carlos:** permiso bajo acción explícita, notificación sintética local, fallback dentro de la aplicación, pruebas y verificadores acumulativos. El SHA se registra después de crear el commit técnico para no inventarlo.
+
+#### Archivos principales
+
+- `src/lib/device/camera.ts`
+- `src/lib/device/geolocation.ts`
+- `src/lib/notifications/client.ts`
+- `src/components/inspection-capabilities.tsx`
+- `tests/capabilities.spec.ts`
+- `docs/capabilities.md`
+- `.github/workflows/week-06-w06-device-push.yml`
+
+#### Flujo de permisos y fallbacks
+
+Consultar soporte no solicita permisos. Cámara se activa desde el selector; geolocalización se solicita con **Usar ubicación actual**; y notificaciones se solicitan únicamente con **Activar notificaciones**. Ningún módulo ejecuta una capacidad al importarse.
+
+Para notificaciones, un permiso `granted` habilita la prueba; `denied`, `dismissed`, `unsupported` o una excepción conservan la inspección y presentan un mensaje interno. La visualización intenta, en orden, `ServiceWorkerRegistration.showNotification()`, una notificación directa de ventana y el fallback accesible dentro de la ficha. La etiqueta `labinspect:<inspectionId>:status` es estable para reducir duplicados.
+
+La demostración usa IDs, ubicaciones, archivos y mensajes sintéticos. La notificación no incluye coordenadas ni imágenes. No se implementan Web Push remoto, suscripciones, claves VAPID, proveedores externos ni entrega garantizada en segundo plano.
+
+#### Instalación, ejecución y verificación
+
+Desde la carpeta que contiene `package.json`:
+
+```bash
+npm ci
+npm run dev
+```
+
+La demostración manual está disponible en `http://localhost:3000/inspecciones/inspection-001`. El servidor de desarrollo debe detenerse antes del build final.
+
+Verificación acumulativa:
+
+```bash
+npm test
+npm run test -- --run
+npx tsc --noEmit
+npm run build
+make verify
+bash public-tests/check.sh
+```
+
+El workflow oficial de la semana se conserva sin modificaciones en `.github/workflows/week-06-w06-device-push.yml`; su SHA-256 esperado es `cda79b0a9547ec24da3ee5d6fde05e1744eae3159bdb007a3a866080bce0f6a9`.
+
+#### Resultados reales del cierre de Carlos
+
+La validación se realizó con Node.js `v20.19.0` y npm `10.8.2`:
+
+- `npm ci`: código 0; instaló 28 paquetes y reportó tres vulnerabilidades heredadas —dos altas y una crítica— sin aplicar correcciones automáticas.
+- `npm test`: código 0; las diez suites acumulativas terminaron en `PASS`.
+- `npm run test -- --run`: código 0; las diez suites terminaron en `PASS` aceptando el argumento adicional.
+- `npx tsc --noEmit`: código 0; sin errores de tipos.
+- `npm run build`: código 0; Next.js 14.2.35 compiló y `/inspecciones/[id]` permaneció como ruta dinámica bajo demanda, con 4.39 kB propios y 91.6 kB de First Load JS.
+- `make verify`: no pudo iniciarse porque GNU Make no está instalado en el entorno Windows. El equivalente exacto `npm run verify` terminó con código 0 y `Verificación técnica: pass`.
+- `bash public-tests/check.sh`: se ejecutó con Git Bash, terminó con código 0 y mostró `PUBLIC_OK`.
+- `git diff --check`: terminó sin salida.
+
+La revisión manual confirmó que cámara, geolocalización y notificaciones aparecen en ese orden, que no se solicita permiso al cargar, que el botón de activación es visible, que no existen errores de consola y que a 375 px no hay desbordamiento horizontal (`innerWidth = 375`, `scrollWidth = 360`). El navegador integrado mantuvo pendiente su diálogo al intentar solicitar permiso; por ello la concesión y el rechazo reales deben repetirse en Chrome por Carlos antes de entregar. Los resultados `granted`, `denied`, `dismissed`, `unsupported` y `display-error` sí quedaron cubiertos mediante dependencias sintéticas en la prueba automatizada.
+
+#### Limitaciones del cierre
+
+- Los permisos persistentes y la presentación final dependen del navegador y del sistema operativo.
+- La selección de cámara, la ubicación y las notificaciones se mantienen como demostraciones locales; no se agregan al esquema de sincronización.
+- La PWA no garantiza ejecución en segundo plano.
+- Las pruebas automatizadas usan dependencias sintéticas: no activan hardware, permisos ni notificaciones reales.
+- La auditoría de npm informa vulnerabilidades heredadas; no se ejecuta `npm audit fix --force` porque cambiaría dependencias fuera del alcance de la actividad.

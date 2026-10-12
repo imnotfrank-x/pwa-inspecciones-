@@ -44,7 +44,7 @@ Si la captura directa no existe, falla o es rechazada, se mantiene el selector d
 
 ### Decisión técnica
 
-La geolocalización se concibe como un dato complementario y estrictamente opcional dentro de la ficha de inspección. La arquitectura delega la obtención en `src/lib/device/geolocation.ts` y presenta la funcionalidad en `src/components/inspection-capabilities.tsx`. 
+La geolocalización se concibe como un dato complementario y estrictamente opcional dentro de la ficha de inspección. La arquitectura delega la obtención en `src/lib/device/geolocation.ts` y presenta la funcionalidad en `src/components/inspection-capabilities.tsx`.
 
 Se optó deliberadamente por una lectura puntual mediante `navigator.geolocation.getCurrentPosition()`, excluyendo por contrato cualquier uso de `watchPosition()` para prevenir consumo sostenido de batería y rastreo continuo innecesario.
 
@@ -97,7 +97,46 @@ Los códigos de error estándar de la Web Geolocation API se mapean a estados co
 
 ## 5. Notificaciones
 
-Esta sección será completada en el incremento de Carlos. El permiso se solicitará únicamente desde una acción explícita y existirá un mensaje dentro de la aplicación cuando las notificaciones no estén disponibles o sean rechazadas.
+### Decisión técnica
+
+Las notificaciones son opcionales y siguen el mismo criterio de mejora progresiva que cámara y geolocalización. `src/lib/notifications/client.ts` separa tres operaciones: consultar disponibilidad, solicitar permiso y mostrar una notificación. Importar el módulo, renderizar el componente o consultar soporte no abre el diálogo del navegador.
+
+El permiso solo se solicita desde la acción explícita **Activar notificaciones**. La visualización utiliza una etiqueta estable derivada del identificador sintético, por ejemplo `labinspect:inspection-001:status`, para que una actualización de la misma inspección pueda sustituir a la anterior en lugar de crear duplicados innecesarios.
+
+### Flujo de permisos
+
+- `default`: se mantiene sin cambios hasta que la persona pulsa el botón; entonces se realiza una sola solicitud.
+- `granted`: se habilita **Mostrar notificación de prueba** sin volver a solicitar permiso.
+- `denied`: no se insiste con otra solicitud y se conserva el mensaje dentro de la aplicación.
+- diálogo descartado (`default` después de solicitar): se representa como `dismissed` y el flujo principal continúa.
+- API ausente: se representa como `unsupported` y se usa el fallback interno.
+- excepción: se transforma en un resultado `error`, sin propagar un fallo global a la inspección.
+
+La función que muestra la notificación nunca solicita permiso por sí sola. Requiere que el estado sea `granted`.
+
+### Canales y fallback
+
+El orden de visualización es:
+
+1. `ServiceWorkerRegistration.showNotification()`, cuando existe un registro disponible.
+2. `new Notification()` como alternativa de ventana cuando no hay registro o el primer canal falla.
+3. Un mensaje accesible dentro de la aplicación como fallback final.
+
+Los errores de los dos canales del sistema se capturan. La ficha permanece operativa y muestra `Cambio sintético disponible para inspection-001.` sin depender de una notificación externa.
+
+### Privacidad
+
+La demostración usa únicamente el ID sintético de la inspección. El título, cuerpo, etiqueta y `data.inspectionId` no incluyen ubicación, imágenes, nombres, direcciones ni otros datos personales.
+
+Se muestran notificaciones locales. No existe backend de Web Push, suscripción `PushManager`, clave VAPID, proveedor externo ni entrega remota. Las pruebas usan dependencias inyectadas y no solicitan permisos ni muestran notificaciones reales.
+
+### Límites conocidos
+
+- La persistencia de permisos depende del navegador, del perfil y de sus políticas.
+- El sistema operativo puede bloquear notificaciones aunque el navegador reporte permiso concedido.
+- La PWA no garantiza ejecución o entrega en segundo plano.
+- No existe un servidor Web Push ni entrega a otros dispositivos.
+- La prueba automatizada valida llamadas y resultados sintéticos; no confirma una notificación visible del sistema operativo.
 
 ## 6. Límites actuales
 
@@ -105,4 +144,4 @@ Esta sección será completada en el incremento de Carlos. El permiso se solicit
 - La presencia de `mediaDevices.getUserMedia` no garantiza que exista una cámara utilizable.
 - Este incremento no comprime ni edita imágenes.
 - La evidencia permanece en memoria y se pierde al recargar la página.
-- No se demuestra todavía un backend para almacenar archivos ni entrega remota de notificaciones push.
+- No se demuestra un backend para almacenar archivos ni entrega remota de notificaciones push.

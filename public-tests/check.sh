@@ -38,9 +38,12 @@ required_files=(
   "docs/sync-policy.md"
   ".github/workflows/week-05-w05-sync-data.yml"
   "src/lib/device/camera.ts"
+  "src/lib/device/geolocation.ts"
+  "src/lib/notifications/client.ts"
   "src/components/inspection-capabilities.tsx"
   "docs/capabilities.md"
   "tests/capabilities.spec.ts"
+  ".github/workflows/week-06-w06-device-push.yml"
 )
 
 for file in "${required_files[@]}"; do
