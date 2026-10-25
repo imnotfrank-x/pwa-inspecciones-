@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { InspectionList } from "../../components/inspection-list";
 import { LoadingState } from "../../components/loading-state";
+import { InspectionCapture } from "../../components/inspection-capture";
 import {
   inspections as syntheticInspections,
   type Inspection
@@ -139,6 +140,8 @@ export default function InspectionsPage() {
           <InspectionList inspections={records} state="ready" />
         ) : null}
       </section>
+
+      {clientState === "ready" ? <InspectionCapture /> : null}
 
       <aside
         aria-labelledby="csr-verification-heading"

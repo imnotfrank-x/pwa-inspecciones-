@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 
 const root = resolve(import.meta.dirname, "..");
 const required = [".nvmrc", "package.json", "package-lock.json", "README.md", "public/manifest.webmanifest", "public/icons/icon-192.png", "public/icons/icon-512.png", "src/app/layout.tsx", "src/app/page.tsx", "src/app/loading.tsx", "src/app/error.tsx", "src/app/globals.css", "src/components/app-shell.tsx", "src/components/inspection-list.tsx", "src/lib/data/inspections.ts", "docs/requirements.md", "docs/decision-record.md", "tests/starter.spec.mjs", "tests/manifest.spec.ts", "tests/inspection-states.spec.ts", "tests/app-shell.spec.ts", "evidence/individual.md", "src/app/inspecciones/page.tsx", "src/app/inspecciones/[id]/page.tsx", "src/app/inspecciones/[id]/loading.tsx", "src/app/inspecciones/[id]/error.tsx", "src/app/inspecciones/[id]/not-found.tsx", "src/components/loading-state.tsx", "src/lib/data/inspection-detail.ts", "docs/rendering-decision.md", "tests/rendering.spec.ts", ".github/workflows/week-04-w04-csr-ssr.yml", "src/lib/storage/schema.ts", "src/lib/sync/queue.ts", "tests/sync.spec.ts", "src/lib/sync/conflict-policy.ts", "docs/sync-policy.md", ".github/workflows/week-05-w05-sync-data.yml", "src/lib/device/camera.ts", "src/lib/device/geolocation.ts", "src/lib/notifications/client.ts", "src/components/inspection-capabilities.tsx", "docs/capabilities.md", "tests/capabilities.spec.ts", ".github/workflows/week-06-w06-device-push.yml"];
+required.push("docs/test-strategy.md", ".github/workflows/academic-evaluation.yml", "src/components/inspection-capture.tsx", "src/lib/inspections/capture.ts", "tests/unit/inspection-validation.test.ts", "tests/unit/queue-idempotency.test.ts", "tests/unit/capture-component.test.ts", "tests/fixtures/inspections.ts", "scripts/run-tests.mjs", "tsconfig.tests.json", "eslint.config.mjs", ".c8rc.json");
 const missing = required.filter(file => !existsSync(resolve(root, file)));
 const structureOnly = process.argv.includes("--structure");
 if (structureOnly) {
@@ -12,18 +13,26 @@ if (structureOnly) {
 }
 const checks = [{ id: "structure", status: missing.length ? "fail" : "pass", missing }];
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-for (const [id, args] of [["test", ["test"]], ["build", ["run", "build"]]]) {
+mkdirSync(resolve(root, "test-results"), { recursive: true });
+for (const [id, args] of [
+  ["lint", ["run", "lint"]],
+  ["typecheck", ["run", "typecheck"]],
+  ["test", ["test"]],
+  ["coverage", ["run", "test:coverage"]],
+  ["build", ["run", "build"]]
+]) {
   console.log(`\nVerificando ${id}...`);
   const run = spawnSync(npm, args, { cwd: root, encoding: "utf8", shell: process.platform === "win32", maxBuffer: 20 * 1024 * 1024 });
   if (run.stdout) process.stdout.write(run.stdout);
   if (run.stderr) process.stderr.write(run.stderr);
+  writeFileSync(resolve(root, "test-results", `${id}.log`), `${run.stdout ?? ""}${run.stderr ?? ""}${run.error ? String(run.error) : ""}`, "utf8");
   checks.push({ id, status: run.status === 0 && !run.error ? "pass" : "fail", exitCode: run.status, error: run.error?.message ?? null });
 }
 const git = args => {
   const r = spawnSync("git", args, { cwd: root, encoding: "utf8" });
   return r.status === 0 ? r.stdout.trim() : null;
 };
-const documents = ["docs/requirements.md", "docs/decision-record.md", "docs/cache-strategy.md", "docs/rendering-decision.md", "evidence/individual.md", "README.md"].map(file => ({ file, content: existsSync(resolve(root, file)) ? readFileSync(resolve(root, file), "utf8") : null }));
+const documents = ["docs/requirements.md", "docs/decision-record.md", "docs/cache-strategy.md", "docs/rendering-decision.md", "docs/test-strategy.md", "evidence/individual.md", "README.md"].map(file => ({ file, content: existsSync(resolve(root, file)) ? readFileSync(resolve(root, file), "utf8") : null }));
 const gitStatus = git(["status", "--porcelain"]);
 const result = {
   schemaVersion: 2,
@@ -31,6 +40,7 @@ const result = {
   commitSha: git(["rev-parse", "HEAD"]),
   workingTreeClean: gitStatus === null ? null : gitStatus === "",
   runtime: { node: process.version },
+  scope: "Semana 8: incremento 1/3 de Francisco. Integración, E2E y defecto controlado pendientes.",
   status: checks.every(c => c.status === "pass") ? "pass" : "fail",
   checks,
   academicReview: { status: "pending", message: "Sin calificación automática. Revisar requisitos, decisión y evidencia por integrante con la rúbrica; existencia no implica calidad.", documents },

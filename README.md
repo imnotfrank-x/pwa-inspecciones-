@@ -1,5 +1,8 @@
 # PWA de inspecciones de laboratorio — proyecto del equipo
 
+> Estado actual: [Semana 8, incremento 1/3 de Francisco](#semana-8--incremento-de-francisco).
+> Las secciones anteriores a Semana 8 conservan resultados históricos; no describen todas las comprobaciones actuales.
+
 Comiencen por `START_HERE.md` y lean `ACTIVIDAD-01.md`. Este es un proyecto acumulativo: un repositorio privado por equipo durante el curso. La Semana 1 consiste en arrancar, documentar y explicar la verificación; no en implementar toda la PWA.
 
 ## Entorno
@@ -658,3 +661,77 @@ La revisión manual confirmó que cámara, geolocalización y notificaciones apa
 - La PWA no garantiza ejecución en segundo plano.
 - Las pruebas automatizadas usan dependencias sintéticas: no activan hardware, permisos ni notificaciones reales.
 - La auditoría de npm informa vulnerabilidades heredadas; no se ejecuta `npm audit fix --force` porque cambiaría dependencias fuera del alcance de la actividad.
+
+## Semana 8 — incremento de Francisco
+
+Continuamos desde Semana 6; Semana 7 correspondió a exámenes. Este es el **primer incremento, no el cierre de Semana 8**. Plan, diagnóstico y riesgos en [docs/test-strategy.md](docs/test-strategy.md). El siguiente integrante debe seguir la [guía de Javier](docs/w08-javier-guide.md).
+
+### Setup y ejecución actual
+
+Usar Node **20.19.0** (`.nvmrc`) y npm **10.8.2**, desde la raíz del repositorio:
+
+```bash
+node --version
+npm --version
+npm ci
+npm run dev
+```
+
+En `/inspecciones`, debajo del listado sintético, aparece **Registrar inspección**. Completar fecha y descripción, conservando exclusivamente datos sintéticos, y pulsar **Guardar en este dispositivo**. Se muestran el registro local y su estado pendiente. **Nueva inspección** habilita otra captura; repetir el mismo envío no crea otra operación. Los datos guardados se cargan de nuevo al montar la vista. Si falla la escritura, los campos se conservan para reintentar; no se borra un almacenamiento corrupto automáticamente.
+
+El panel opcional reutiliza cámara, ubicación y notificaciones de Semana 6 sin pedir permisos al cargar. Sus evidencias siguen siendo temporales, no forman parte de la operación sincronizable. El indicador **Con conexión** describe conectividad, no confirma envío: **Javier todavía debe conectar el transporte y la sincronización de la interfaz**.
+
+Detener el servidor de desarrollo antes del build. Para la revisión de producción:
+
+```bash
+npm run build
+npm run start
+```
+
+### Verificación y reportes actuales
+
+```bash
+npm ci
+make verify
+```
+
+El equivalente exacto de `make verify` es `npm run verify` (el Makefile invoca ese comando). Ahora verifica estructura, lint, tipos de app y pruebas, diez suites heredadas, las pruebas nuevas, cobertura y build. Una etapa fallida hace fallar la verificación; se conservan sus logs.
+
+También se pueden ejecutar por separado:
+
+```bash
+npm run lint
+npm run typecheck
+npm run test:unit
+npm test
+npm run test -- --run
+npm run test:coverage
+npm run build
+bash public-tests/check.sh
+git diff --check
+```
+
+En Windows, utilizar Bash de Git si el `bash` predeterminado no ejecuta correctamente el check público: `& 'C:\Program Files\Git\bin\bash.exe' public-tests/check.sh` en PowerShell.
+
+Las pruebas nuevas ejecutan **40 casos**: 26 de validación, 9 de idempotencia y 5 del componente en memoria. No usan navegador, cuentas, GPS, cámara ni permisos reales. No equivalen al E2E ni a una auditoría de accesibilidad.
+
+Resultados locales observados en este incremento: `npm ci`, lint, tipos, las diez suites heredadas y los 40 casos, la variante `--run`, cobertura, build, `npm run verify` y `make verify` terminaron con código 0. El check público mostró `PUBLIC_OK`. La cobertura fue 45.02% de líneas (973/2161) y 79.81% de ramas (170/213) del alcance declarado, sin esconder los módulos no ejecutados.
+
+Salidas generadas y excluidas de Git:
+
+- `reports/verification.json`: SHA del checkout, runtime, alcance y resultado de cada etapa.
+- `test-results/unit.xml`: resultados JUnit; `test-results/*.log`: diagnóstico de las etapas.
+- `coverage/index.html`, `coverage/lcov.info`, `coverage/coverage-summary.json`: cobertura de `src/lib` y del componente de captura, incluidos módulos no ejecutados. No se impone un porcentaje ficticio ni se presenta esta cifra como cobertura de toda la app.
+
+El nuevo workflow `.github/workflows/academic-evaluation.yml` ejecuta instalación limpia y `make verify`, y conserva esos reportes con `if: always()`. Su nombre y resumen indican que es el incremento 1/3. Los workflows oficiales previos permanecen sin modificaciones. Para revisar evidencia, abrir la ejecución correspondiente al SHA publicado y descargar `w08-francisco-<SHA>`; no usar una ejecución de otro commit.
+
+### Pendientes y límites
+
+- Javier: transporte sintético, conexión de cola/UI, integración con persistencia real y evidencia roja/verde de un defecto controlado en rama temporal.
+- Carlos: E2E de captura offline, recarga con Service Worker, reconexión sin duplicados y capacidad rechazada/ausente; terminar CI, reportes y documentación.
+- La revisión visual local no se realizó: la herramienta de navegador rechazó el permiso de acceso. La recuperación probada en memoria no demuestra una recarga realmente offline.
+- Persistencia en localStorage y coordinación de una sola instancia; no hay garantía entre pestañas, segundo plano o backend durable.
+- `npm ci` continúa informando tres vulnerabilidades heredadas (dos altas y una crítica). Se deja su actualización para un cambio evaluado; no se aplicó `npm audit fix --force`.
+- Francisco debe revisar personalmente el diff y repetir los comandos antes de la entrega. La evidencia distingue la ejecución asistida de la validación humana pendiente.
+
+La entrega común será posterior a la revisión de las tres partes: SHA final, enlace al commit, ejecución de Actions del mismo SHA, estrategia y evidencia individual. Las instrucciones de Semana 8 no requieren tag. No se entrega esta rama parcial como si fuera el cierre.

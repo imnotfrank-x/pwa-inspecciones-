@@ -647,6 +647,40 @@ dd { font-size: .82rem; font-weight: 700; margin: 0; text-align: right; }
   }
 }
 
+.capture-fields {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  margin: 20px 0;
+  min-width: 0;
+  padding: 20px;
+}
+
+.capture-fields label { display: grid; gap: 8px; min-width: 0; }
+.capture-fields input, .capture-fields select, .capture-fields textarea {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: inherit;
+  background: #fff;
+  font: inherit;
+  padding: 10px;
+  width: 100%;
+  min-width: 0;
+}
+.capture-fields input:focus-visible, .capture-fields select:focus-visible, .capture-fields textarea:focus-visible {
+  outline: 3px solid #2445b5;
+  outline-offset: 2px;
+}
+.capture-wide { grid-column: 1 / -1; }
+.capture-fields:disabled { opacity: .75; }
+.capture-capabilities { margin-top: 20px; }
+.capture-capabilities > summary { cursor: pointer; padding: 12px 0; font-weight: 700; }
+.local-records { margin-top: 28px; }
+.local-inspection-list { list-style: none; padding: 0; display: grid; gap: 14px; }
+.local-inspection-list li { border: 1px solid var(--line); border-radius: 12px; padding: 18px; overflow-wrap: anywhere; }
+
 @media (prefers-reduced-motion: reduce) {
   .skip-link {
     transition: none;
