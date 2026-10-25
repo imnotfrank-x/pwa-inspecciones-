@@ -664,7 +664,7 @@ La revisión manual confirmó que cámara, geolocalización y notificaciones apa
 
 ## Semana 8 — incremento de Francisco
 
-Continuamos desde Semana 6; Semana 7 correspondió a exámenes. Este es el **primer incremento, no el cierre de Semana 8**. Plan, diagnóstico y riesgos en [docs/test-strategy.md](docs/test-strategy.md). El siguiente integrante debe seguir la [guía de Javier](docs/w08-javier-guide.md).
+Continuamos desde Semana 6; Semana 7 correspondió a exámenes. Este es el **primer incremento, no el cierre de Semana 8**. Plan, diagnóstico y riesgos en [docs/test-strategy.md](docs/test-strategy.md).
 
 ### Setup y ejecución actual
 
