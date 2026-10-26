@@ -2,45 +2,82 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { inspectionDraftFromForm, type InspectionFormValues } from "../lib/inspections/capture";
-import { createBrowserSyncStorage, SyncSchemaError, type StoredInspection } from "../lib/storage/schema";
-import { createSyncQueue, type InspectionSyncQueue } from "../lib/sync/queue";
+import { createBrowserSyncStorage, SyncSchemaError, type SyncStorage } from "../lib/storage/schema";
+import { createSyncQueue, type RetryOptions, type SyncTransport } from "../lib/sync/queue";
+import {
+  createSyncController,
+  type InspectionSyncItemView,
+  type SyncController
+} from "../lib/sync/sync-controller";
+import { createSyntheticSyncReceiver } from "../lib/sync/synthetic-transport";
 import { InspectionCapabilities } from "./inspection-capabilities";
 
 const EMPTY_FORM: InspectionFormValues = {
   location: "Laboratorio Sintético A", date: "", inspectorAlias: "Inspector Sintético A",
   status: "ok", findings: "0", summary: ""
 };
-const SYNC_LABELS = { pending: "Pendiente de sincronización", synced: "Sincronizada", failed: "Error de sincronización" };
 
-export function InspectionCapture() {
-  const queue = useRef<InspectionSyncQueue | null>(null);
+export type InspectionCaptureProps = {
+  storage?: SyncStorage;
+  transport?: SyncTransport;
+  now?: () => Date;
+  retryOptions?: RetryOptions;
+};
+
+export function InspectionCapture({
+  storage,
+  transport,
+  now,
+  retryOptions
+}: InspectionCaptureProps) {
+  const controller = useRef<SyncController | null>(null);
   const saving = useRef(false);
   const committed = useRef(false);
   const [values, setValues] = useState(EMPTY_FORM);
   const [draftId, setDraftId] = useState("");
-  const [records, setRecords] = useState<StoredInspection[]>([]);
+  const [items, setItems] = useState<InspectionSyncItemView[]>([]);
   const [ready, setReady] = useState(false);
   const [online, setOnline] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [syncError, setSyncError] = useState("");
   const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
-    const updateConnection = () => setOnline(navigator.onLine);
-    updateConnection();
-    window.addEventListener("online", updateConnection);
-    window.addEventListener("offline", updateConnection);
+    let unsubscribe: () => void = () => undefined;
+    let instance: SyncController | null = null;
     async function load() {
       try {
-        const localQueue = createSyncQueue({ storage: createBrowserSyncStorage() });
-        const snapshot = await localQueue.getSnapshot();
+        const localStorageAdapter = storage ?? createBrowserSyncStorage();
+        const localQueue = createSyncQueue({ storage: localStorageAdapter, now });
+        const receiver = createSyntheticSyncReceiver({ now });
+        instance = createSyncController({
+          queue: localQueue,
+          transport: transport ?? receiver.transport,
+          retryOptions,
+          now,
+          target: typeof window !== "undefined" ? window : undefined,
+          isOnline: () => (typeof navigator !== "undefined" ? navigator.onLine : true)
+        });
+        unsubscribe = instance.subscribe(next => {
+          if (!active) return;
+          setOnline(next.online);
+          setSyncing(next.syncing);
+          setItems(next.items);
+          setMessage(next.statusMessage);
+          setSyncError(next.errorMessage);
+        });
         const id = `inspection-local-${crypto.randomUUID()}`;
+        const initial = await instance.start();
         if (!active) return;
-        queue.current = localQueue;
-        setRecords(snapshot.inspections);
+        controller.current = instance;
+        setOnline(initial.online);
+        setSyncing(initial.syncing);
+        setItems(initial.items);
         setDraftId(id);
         setReady(true);
         setError("");
@@ -51,31 +88,32 @@ export function InspectionCapture() {
     void load();
     return () => {
       active = false;
-      window.removeEventListener("online", updateConnection);
-      window.removeEventListener("offline", updateConnection);
+      unsubscribe();
+      instance?.dispose();
     };
-  }, [loadAttempt]);
+  }, [loadAttempt, now, retryOptions, storage, transport]);
 
   async function saveInspection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!queue.current || !ready || saving.current || committed.current) return;
+    if (!controller.current || !ready || saving.current || committed.current) return;
     saving.current = true;
     setBusy(true);
     setError("");
-    setMessage("");
     try {
       const draft = inspectionDraftFromForm(values, draftId);
       // La identidad se conserva durante errores y doble clic; solo "Nueva inspección" la cambia.
-      const operation = await queue.current.enqueueInspection(draft, { idempotencyKey: `capture:${draftId}` });
+      await controller.current.enqueueDraft(draft, { idempotencyKey: `capture:${draftId}` });
       committed.current = true;
       setSaved(true);
-      setRecords(current => [...current.filter(item => item.id !== draftId), operation.payload]);
-      setMessage("Inspección guardada en este dispositivo. Pendiente de sincronización.");
     } catch (failure) {
       setError(failure instanceof SyncSchemaError ? failure.message : "No se pudo guardar. Tu captura sigue en pantalla; revisa el almacenamiento y reintenta.");
+      return;
     } finally {
       saving.current = false;
       setBusy(false);
+    }
+    if (controller.current.isOnline()) {
+      await controller.current.syncPending();
     }
   }
 
@@ -103,8 +141,9 @@ export function InspectionCapture() {
         <div><p className="eyebrow">Registro local</p><h2 id="capture-title">Registrar inspección</h2></div>
         <span role="status">{online === null ? "Comprobando conexión" : online ? "Con conexión" : "Sin conexión"}</span>
       </div>
-      <p id="capture-help">Usa exclusivamente datos sintéticos. Los registros se conservan en este navegador; en este incremento la sincronización aún no está conectada.</p>
+      <p id="capture-help">Usa exclusivamente datos sintéticos. Los registros se guardan primero en este navegador y se sincronizan con el receptor sintético en memoria cuando hay conexión; el indicador de red no implica que la operación ya esté sincronizada.</p>
       {error ? <p role="alert" className="capability-feedback capability-feedback-error">{error}</p> : null}
+      {syncError ? <p role="alert" className="capability-feedback capability-feedback-error">{syncError}</p> : null}
       {!ready ? <button type="button" className="state-action" onClick={() => setLoadAttempt(attempt => attempt + 1)}>Reintentar almacenamiento</button> : null}
       <form onSubmit={saveInspection} aria-describedby="capture-help" aria-busy={busy}>
         <fieldset disabled={!ready || busy || saved} className="capture-fields">
@@ -120,15 +159,16 @@ export function InspectionCapture() {
       </form>
       {message ? <p role="status" className="capability-feedback capability-feedback-success">{message}</p> : null}
       {saved ? <button type="button" className="state-action" onClick={newInspection}>Nueva inspección</button> : null}
+      {ready ? <button type="button" className="state-action" disabled={syncing} onClick={() => { void controller.current?.syncPending(); }}>Sincronizar pendientes</button> : null}
       {ready ? <details className="capture-capabilities"><summary>Capacidades opcionales</summary><InspectionCapabilities key={draftId} inspectionId={draftId} /></details> : null}
       <section aria-labelledby="local-records-title" className="local-records">
         <h3 id="local-records-title">Inspecciones guardadas en este dispositivo</h3>
-        <p role="status">{records.length} registros locales</p>
+        <p role="status">{items.length} registros locales</p>
         <ul className="local-inspection-list">
-          {records.map(record => <li key={record.id} data-inspection-id={record.id}>
+          {items.map(({ inspection: record, label }) => <li key={record.id} data-inspection-id={record.id}>
             <h4>{record.location}</h4><p>{record.summary}</p>
             <p>{record.inspectorAlias} · {record.inspectedAt.slice(0, 10)} · {record.findings} hallazgos</p>
-            <p><strong>{SYNC_LABELS[record.syncState]}</strong></p>
+            <p><strong>{label}</strong></p>
           </li>)}
         </ul>
       </section>

@@ -1,4 +1,4 @@
-name: Semana 8 - Base unitaria (incremento 1 de 3)
+name: Semana 8 - Integración y sincronización sintética (incremento 2 de 3)
 
 on:
   push:
@@ -21,23 +21,23 @@ jobs:
       - name: Instalación limpia
         id: install
         run: npm ci
-      - name: Lint, tipos, regresión, unitarias con cobertura y build
+      - name: Lint, tipos, regresión, unitarias e integración con cobertura y build
         run: make verify
       - name: Alcance del incremento
         if: always()
         run: |
-          echo 'Incremento Francisco: integración, E2E y defecto controlado siguen pendientes de Javier/Carlos.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Incremento 2 de 3 (Javier): transporte sintético, sincronización en UI e integración verificados. Pruebas E2E y cierre siguen pendientes de Carlos.' >> "$GITHUB_STEP_SUMMARY"
           echo "SHA comprobado: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
       - name: Conservar reportes incluso ante fallo
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: w08-francisco-${{ github.sha }}
+          name: w08-javier-${{ github.sha }}
           if-no-files-found: warn
           path: |
             reports/verification.json
             test-results/
             coverage/
 
-# Javier añadirá integración; Carlos añadirá E2E con servidor de producción.
+# Carlos añadirá E2E con servidor de producción y completará el cierre.
 # No es todavía la evidencia de cumplimiento completo de Semana 8.
