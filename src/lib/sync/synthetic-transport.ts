@@ -201,23 +201,23 @@ export class SyntheticSyncReceiver {
 
     const fingerprint = extractOperationFingerprint(operation);
     const existing = this.processedKeys.get(operation.idempotencyKey);
-    if (existing) {
-      if (!sameOperationFingerprint(existing.fingerprint, fingerprint)) {
-        return {
-          kind: "fatal-error",
-          message: `La clave idempotente ${operation.idempotencyKey} ya fue registrada con contenido diferente.`
-        };
-      }
-
-      return { ...existing.result };
+    if (existing && !sameOperationFingerprint(existing.fingerprint, fingerprint)) {
+      return {
+        kind: "fatal-error",
+        message: `La clave idempotente ${operation.idempotencyKey} ya fue registrada con contenido diferente.`
+      };
     }
 
     const currentRemote = this.appliedInspections.get(operation.entityId);
-    if (currentRemote && currentRemote.version !== operation.baseVersion) {
+    if (!existing && currentRemote && currentRemote.version !== operation.baseVersion) {
       return {
         kind: "conflict",
         remoteInspection: cloneInspection(currentRemote)
       };
+    }
+
+    if (existing) {
+      return { ...existing.result };
     }
 
     this.effectsCount += 1;
