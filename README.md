@@ -1,6 +1,6 @@
 # PWA de inspecciones de laboratorio — proyecto del equipo
 
-> Estado actual: [Semana 8, incremento 1/3 de Francisco](#semana-8--incremento-de-francisco).
+> Estado actual: [Semana 8, incremento 2/3 de Javier](#semana-8--incremento-de-javier).
 > Las secciones anteriores a Semana 8 conservan resultados históricos; no describen todas las comprobaciones actuales.
 
 Comiencen por `START_HERE.md` y lean `ACTIVIDAD-01.md`. Este es un proyecto acumulativo: un repositorio privado por equipo durante el curso. La Semana 1 consiste en arrancar, documentar y explicar la verificación; no en implementar toda la PWA.
@@ -735,3 +735,60 @@ El nuevo workflow `.github/workflows/academic-evaluation.yml` ejecuta instalaci�
 - Francisco debe revisar personalmente el diff y repetir los comandos antes de la entrega. La evidencia distingue la ejecución asistida de la validación humana pendiente.
 
 La entrega común será posterior a la revisión de las tres partes: SHA final, enlace al commit, ejecución de Actions del mismo SHA, estrategia y evidencia individual. Las instrucciones de Semana 8 no requieren tag. No se entrega esta rama parcial como si fuera el cierre.
+
+## Semana 8 — incremento de Javier
+
+Este es el **segundo incremento (2/3) de Semana 8**: conecta la captura local con la sincronización sintética y demuestra su funcionamiento mediante pruebas de integración y un experimento de defecto controlado. No marca la Semana 8 como terminada; las pruebas E2E en navegador y el cierre siguen pendientes de Carlos.
+
+### Qué conecta ahora la interfaz
+
+- `src/components/inspection-capture.tsx` comparte la misma instancia de `InspectionSyncQueue` con `src/lib/sync/sync-controller.ts` y utiliza el receptor sintético `src/lib/sync/synthetic-transport.ts`.
+- Al guardar una inspección, primero se valida y persiste localmente junto con su operación en `localStorage` (`utt-lab-inspections:sync:v1`). Si hay conexión disponible, el controlador solicita `syncPending()` y refleja el resultado en la lista; si no hay conexión, la conserva pendiente sin realizar envíos. Un fallo del transporte nunca convierte un guardado local válido en pérdida de datos.
+- Al abrir la vista con conexión o al recibir el evento `online`, el controlador procesa automáticamente las operaciones pendientes respetando `nextAttemptAt` y `maxAttempts`.
+- El botón **Sincronizar pendientes** permite recuperar manualmente el procesamiento sin recargar la página, sin crear otra operación, sin generar otra clave, sin reiniciar `attemptCount`, sin saltarse `nextAttemptAt` y sin ejecutar envíos simultáneos.
+- Los estados visibles (`Pendiente de sincronización`, `Sincronizando…`, `Pendiente de reintento`, `Sincronizada`, `Error de sincronización` y `Conflicto pendiente`) se determinan consultando tanto las inspecciones como las operaciones del `SyncSnapshot`. El indicador de red (**Con conexión** / **Sin conexión**) solo informa conectividad del navegador y no equivale a **Sincronizada**.
+
+### Cómo probar guardado, reconexión y deduplicación
+
+1. Ejecutar `npm run dev` y abrir `http://localhost:3000/inspecciones`.
+2. Con DevTools en modo **Offline** (o sin conexión), completar fecha y descripción sintética y pulsar **Guardar en este dispositivo**: el registro queda en `Pendiente de sincronización`.
+3. Desactivar el modo **Offline** (evento `online`) o pulsar **Sincronizar pendientes**: el controlador procesa la operación pendiente y actualiza el estado del registro a `Sincronizada`.
+4. La deduplicación del receptor sintético (`SyntheticSyncReceiver`) compara la identidad y el contenido estable de cada operación (`entityId`, `type`, `baseVersion` y los campos de la inspección en `payload`), ignorando campos que cambian legítimamente durante los reintentos (`attemptCount`, `nextAttemptAt`, `state` y `updatedAt` de la operación). Si recibe nuevamente la misma `idempotencyKey` con el mismo contenido estable (por ejemplo, tras una respuesta perdida), devuelve el resultado original sin volver a aplicar el efecto (`effectsApplied` no se incrementa). Si recibe la misma clave con contenido distinto, rechaza la operación con `fatal-error` y conserva intactos los datos originales.
+
+### Qué conserva y qué pierde el receptor sintético
+
+- **Qué conserva mientras la instancia está activa:** registro de claves idempotentes procesadas, huella de contenido estable, resultado original de cada operación aceptada, inspecciones remotas aplicadas y contadores separados de intentos recibidos (`attemptsReceived`) y efectos aplicados (`effectsApplied`).
+- **Límite explícito:** el receptor simula un sistema remoto, pero no es un servidor durable. Su memoria puede perderse al recargar o reiniciar y no representa sincronización con un backend de producción. Los registros locales sí permanecen en `localStorage` bajo `utt-lab-inspections:sync:v1`.
+
+### Comandos y verificación del incremento 2/3
+
+```bash
+npm ci
+npm run lint
+npm run typecheck
+npm run test:unit
+npm run test:integration
+npm test
+npm run test -- --run
+npm run test:coverage
+npm run build
+make verify
+npm run verify
+& 'C:\Program Files\Git\bin\bash.exe' public-tests/check.sh
+git diff --check
+```
+
+### Casos ejecutados, resultados observados y cobertura
+
+Con Node.js `v20.19.0` y npm `10.8.2`:
+
+- Diez suites heredadas en `PASS`.
+- `npm run test:unit`: **40 casos aprobados** en 3 suites (`test-results/unit.xml`), código 0.
+- `npm run test:integration`: **15 casos aprobados** en 2 suites (`tests/integration/offline-sync.test.ts` con 7 casos y `tests/integration/sync-controller.test.ts` con 8 casos; genera `test-results/integration.xml`), código 0. En el escenario central de respuesta perdida se verifican exactamente 2 intentos recibidos, 1 efecto remoto aplicado, 1 inspección local en estado `synced` y 0 operaciones pendientes.
+- `npm run test:coverage`: recopila en una sola ejecución (`c8 node scripts/run-tests.mjs unit integration`) las pruebas unitarias y de integración sobre `src/lib/**/*.ts` y `src/components/inspection-capture.tsx`, conservando en el denominador los módulos no ejecutados (0%). Resultado observado: **62.51% de líneas/sentencias** (`1853/2964`), **84.01% de ramas** (`389/463`) y **63.63% de funciones** (`140/220`), con `inspection-capture.tsx` en 98.87%, `capture.ts` en 100%, `schema.ts` en 98.17%, `sync-controller.ts` en 96.94%, `synthetic-transport.ts` en 91.91% y `queue.ts` en 75.83%.
+- `make verify`, `npm run verify` y `check.sh` terminaron con código 0 (`Verificación técnica: pass` y `PUBLIC_OK`).
+
+### Experimento de defecto controlado y pendientes de Carlos
+
+- La evidencia completa del experimento de defecto controlado en la rama temporal `w08/javier-defecto-controlado` (defecto en [`2d3a24ac2d22c7341b4287f8b84d23dd2d12ecf3`](https://github.com/imnotfrank-x/pwa-inspecciones-/commit/2d3a24ac2d22c7341b4287f8b84d23dd2d12ecf3), [Actions rojo](https://github.com/imnotfrank-x/pwa-inspecciones-/actions/runs/40250330208), reversión en [`f9c908987a0b7bfa3d3aa0f2f34188d2ef605267`](https://github.com/imnotfrank-x/pwa-inspecciones-/commit/f9c908987a0b7bfa3d3aa0f2f34188d2ef605267) y [Actions verde](https://github.com/imnotfrank-x/pwa-inspecciones-/actions/runs/40250381443)) se encuentra en [docs/controlled-defect.md](docs/controlled-defect.md).
+- **Pendiente para Carlos (incremento 3/3):** pruebas E2E con Playwright sobre servidor de producción (`npm run build && npm run start`), comprobación de recarga offline real con Service Worker, prueba E2E de fallback de capacidades opcionales y cierre final de Semana 8.
