@@ -1,4 +1,4 @@
-name: Semana 8 - Integración corregida (incremento 2 de 3)
+name: Semana 8 - Verificación completa
 
 on:
   push:
@@ -19,25 +19,19 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - name: Instalación limpia
-        id: install
         run: npm ci
-      - name: Lint, tipos, regresión, unitarias e integración con cobertura y build
-        run: make verify
-      - name: Alcance del incremento
-        if: always()
-        run: |
-          echo 'Alcance: incremento de Javier con correcciones de Francisco. E2E y cierre pendientes de Carlos; consultar el resultado de las etapas, no solo este resumen.' >> "$GITHUB_STEP_SUMMARY"
-          echo "SHA comprobado: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-      - name: Conservar reportes incluso ante fallo
+      - name: Instalar Chromium y dependencias
+        run: npx playwright install --with-deps chromium
+      - name: Verificación completa de Semana 8
+        run: npm run verify:all
+      - name: Conservar reportes
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: w08-sync-fixes-${{ github.sha }}
+          name: w08-final-${{ github.sha }}
           if-no-files-found: warn
           path: |
             reports/verification.json
             test-results/
             coverage/
-
-# Carlos añadirá E2E con servidor de producción y completará el cierre.
-# No es todavía la evidencia de cumplimiento completo de Semana 8.
+            playwright-report/

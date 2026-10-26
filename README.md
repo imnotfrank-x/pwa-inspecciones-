@@ -1,6 +1,6 @@
 # PWA de inspecciones de laboratorio — proyecto del equipo
 
-> Estado actual: [Semana 8, integración corregida por Francisco](#semana-8--correcciones-de-francisco-sobre-la-integración).
+> Estado actual: [Semana 8, cierre E2E de Carlos](#semana-8--cierre-e2e-de-carlos).
 > Las secciones anteriores a Semana 8 conservan resultados históricos; no describen todas las comprobaciones actuales.
 
 Comiencen por `START_HERE.md` y lean `ACTIVIDAD-01.md`. Este es un proyecto acumulativo: un repositorio privado por equipo durante el curso. La Semana 1 consiste en arrancar, documentar y explicar la verificación; no en implementar toda la PWA.
@@ -808,8 +808,97 @@ La revisión reprodujo tres fallos pese al CI verde: la acción manual enviaba o
 
 Validación local de las correcciones con Node `v20.19.0` y npm `10.8.2`: instalación limpia, `make verify`, compatibilidad `--run`, check público y `git diff --check` aprobados. Cobertura combinada: líneas/sentencias **63.80% (1939/3039)**, ramas **84.32% (452/536)** y funciones **64.25% (142/221)**. Son mediciones locales, no cobertura E2E ni garantía de ausencia de defectos.
 
-Los comandos siguen siendo `npm ci`, `make verify` (equivalente exacto: `npm run verify`), `npm run test -- --run` y el check público con Bash de Git. El workflow de Semana 8 publica `w08-sync-fixes-<SHA>` con resultados JUnit, logs, reporte de verificación y cobertura; los workflows oficiales anteriores no se modifican. Ver el resultado y runtime del SHA exacto, no una ejecución antigua.
+En ese incremento, los comandos eran `npm ci`, `make verify` (equivalente exacto: `npm run verify`), `npm run test -- --run` y el check público con Bash de Git. Su workflow publicaba `w08-sync-fixes-<SHA>` con resultados JUnit, logs, reporte de verificación y cobertura; la sección de cierre posterior describe el workflow final. Ver siempre el resultado y runtime del SHA exacto, no una ejecución antigua.
 
 El experimento rojo/verde de Javier se conserva intacto en [docs/controlled-defect.md](docs/controlled-defect.md). Estas correcciones no se le atribuyen; su autoría y la evidencia de los otros integrantes no se alteran. La evidencia adicional de Francisco declara asistencia de Codex y revisión humana pendiente.
 
 Límites: reintentos por acción/evento respetando `nextAttemptAt`, sin temporizador continuo ni garantía de segundo plano; receptor sintético no durable; coordinación limitada a una instancia; sin E2E ni revisión visual nueva en este incremento. Carlos debe comprobar el flujo real con Service Worker y capacidad denegada/ausente antes del cierre. Persisten los tres hallazgos heredados de auditoría de dependencias. No hay merge a `main` ni tags.
+
+## Semana 8 — cierre E2E de Carlos
+
+El tercer incremento incorpora Playwright `1.64.1` y comprueba el flujo crítico en
+Chromium contra el servidor de producción de Next.js. Los escenarios usan contextos
+de navegador independientes, únicamente datos sintéticos y esperas basadas en estados
+observables; no insertan inspecciones directamente mediante JavaScript.
+
+### Preparación y comandos
+
+Usar Node.js `v20.19.0` y npm `10.8.2`:
+
+```bash
+npm ci
+npx playwright install chromium
+npm run verify:all
+```
+
+`npm run verify` conserva la batería previa: estructura, lint, tipos, diez suites
+heredadas, 40 casos unitarios, 25 de integración, cobertura y build. `npm run
+verify:all` ejecuta primero esa verificación y, después del build, añade los E2E.
+Para lanzar solo Playwright debe existir previamente un build de producción:
+
+```bash
+npm run build
+npm run test:e2e
+```
+
+Para observar el navegador y abrir el reporte HTML:
+
+```bash
+npm run test:e2e -- --headed
+npx playwright show-report
+```
+
+Los resultados se escriben en `test-results/e2e/`, el JUnit en
+`test-results/e2e.xml` y el informe navegable en `playwright-report/`. Estas rutas
+están excluidas de Git.
+
+### Escenarios E2E
+
+- `tests/e2e/inspection-offline.spec.ts` abre `/inspecciones` con conexión, espera
+  a que el Service Worker controle la página, recarga para preparar la caché y activa
+  el modo offline real de Chromium. Captura la inspección mediante el formulario,
+  verifica la operación pendiente y el botón de sincronización deshabilitado, recarga
+  todavía sin red y confirma el mismo ID y contenido desde `localStorage`. Al restaurar
+  la conexión espera el estado **Sincronizada**, pulsa nuevamente **Sincronizar
+  pendientes** y confirma una sola inspección y una cola vacía.
+- `tests/e2e/capabilities-fallback.spec.ts` elimina la API de geolocalización antes
+  de abrir la página, comprueba el aviso de capacidad no disponible, utiliza
+  **Referencia manual (opcional)** y guarda una inspección completa. La referencia
+  manual permanece solo en memoria durante esa vista: el E2E confirma que no forma
+  parte del snapshot persistido.
+
+### Resultados del cierre
+
+La ejecución local con Node.js `v20.19.0` y npm `10.8.2` obtuvo:
+
+- `npm run verify:all`: código 0; verificación técnica `pass` y **2 E2E aprobados**.
+- Diez suites heredadas en `PASS`, **40/40 unitarias** y **25/25 de integración**.
+- Cobertura de unitarias + integración: **63.80%** de líneas/sentencias,
+  **84.32%** de ramas y **64.25%** de funciones; no incluye una métrica de cobertura
+  E2E ni representa cobertura global de toda la PWA.
+- Build de Next.js 14.2.35 correcto; `/inspecciones` quedó en 11 kB propios y
+  103 kB de First Load JS, mientras `/inspecciones/[id]` permaneció dinámica.
+- `npm run test -- --run`, el check público y `git diff --check` se ejecutan además
+  antes de publicar el cierre.
+
+El primer E2E de fallback encontró un selector ambiguo porque Next.js mantiene su
+propio anunciador de ruta con `role="alert"`. Se corrigió el test seleccionando el
+aviso funcional mediante `data-reason="unsupported"`; no fue un defecto del producto.
+La recarga offline real pasó sin requerir cambios al Service Worker. En el entorno
+aislado de ejecución fue necesario permitir acceso al servidor local para que
+Playwright alcanzara `127.0.0.1:3108`.
+
+### CI y límites
+
+`.github/workflows/academic-evaluation.yml` instala dependencias con `npm ci`, instala
+Chromium y sus dependencias mediante `npx playwright install --with-deps chromium` y
+ejecuta `npm run verify:all`. Una prueba fallida falla el job. La etapa con
+`if: always()` publica `w08-final-<SHA>` con `reports/verification.json`,
+`test-results/`, `coverage/` y `playwright-report/`.
+
+El E2E demuestra el flujo visible, la caché del Service Worker y la persistencia real
+del navegador. La deduplicación de efectos remotos sigue demostrada por la integración
+con `SyntheticSyncReceiver`; ese receptor vive en memoria y no es un servidor durable.
+No se demuestra coordinación entre pestañas, sincronización garantizada en segundo
+plano, hardware real, todos los navegadores ni un backend de producción. Se conservan
+sin cambios el experimento controlado y la evidencia de los demás integrantes.

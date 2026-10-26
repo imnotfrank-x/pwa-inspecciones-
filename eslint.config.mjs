@@ -9,7 +9,7 @@ export default tseslint.config(
     languageOptions: { globals: { process: "readonly", console: "readonly", Buffer: "readonly" } }
   },
   {
-    files: ["src/**/*.{ts,tsx}", "tests/unit/**/*.ts", "tests/integration/**/*.ts", "tests/fixtures/**/*.ts"],
+    files: ["src/**/*.{ts,tsx}", "tests/unit/**/*.ts", "tests/integration/**/*.ts", "tests/e2e/**/*.ts", "tests/fixtures/**/*.ts", "playwright.config.ts"],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     rules: { "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", caughtErrors: "none" }] }
   },

@@ -14,9 +14,11 @@
     "test:unit": "node scripts/run-tests.mjs unit",
     "test:integration": "node scripts/run-tests.mjs integration",
     "test:coverage": "c8 node scripts/run-tests.mjs unit integration",
-    "lint": "eslint src tests/unit tests/integration tests/fixtures scripts --max-warnings=0",
+    "test:e2e": "playwright test",
+    "lint": "eslint src tests/unit tests/integration tests/e2e tests/fixtures scripts playwright.config.ts --max-warnings=0",
     "typecheck": "tsc --noEmit --incremental false && tsc -p tsconfig.tests.json",
-    "verify": "node scripts/verify.mjs"
+    "verify": "node scripts/verify.mjs",
+    "verify:all": "npm run verify && npm run test:e2e"
   },
   "dependencies": {
     "next": "14.2.35",
@@ -25,15 +27,16 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
     "@types/node": "^20.14.15",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@types/react-test-renderer": "18.3.1",
-    "typescript": "^5.4.5",
     "c8": "12.0.0",
     "eslint": "10.13.0",
     "react-test-renderer": "18.3.1",
     "tsx": "4.23.15",
+    "typescript": "^5.4.5",
     "typescript-eslint": "8.72.0"
   }
 }
