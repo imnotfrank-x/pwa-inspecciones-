@@ -1,4 +1,4 @@
-name: Semana 8 - Integración y sincronización sintética (incremento 2 de 3)
+name: Semana 8 - Integración corregida (incremento 2 de 3)
 
 on:
   push:
@@ -26,13 +26,13 @@ jobs:
       - name: Alcance del incremento
         if: always()
         run: |
-          echo 'Incremento 2 de 3 (Javier): transporte sintético, sincronización en UI e integración verificados. Pruebas E2E y cierre siguen pendientes de Carlos.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Alcance: incremento de Javier con correcciones de Francisco. E2E y cierre pendientes de Carlos; consultar el resultado de las etapas, no solo este resumen.' >> "$GITHUB_STEP_SUMMARY"
           echo "SHA comprobado: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
       - name: Conservar reportes incluso ante fallo
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: w08-javier-${{ github.sha }}
+          name: w08-sync-fixes-${{ github.sha }}
           if-no-files-found: warn
           path: |
             reports/verification.json

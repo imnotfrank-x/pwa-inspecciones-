@@ -216,7 +216,7 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
   });
 
   it("expone los seis estados visibles consultando las operaciones del snapshot y no solo syncState de la inspección", async () => {
-    const { controller, receiver } = setupControllerTest(false);
+    const { controller, receiver, setOnline } = setupControllerTest(false);
     await controller.start();
 
     const observedLabels: string[] = [];
@@ -234,6 +234,7 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
 
     // 1. Fallo recuperable -> "Pendiente de reintento" (mientras pasa por "Sincronizando…").
     receiver.failNextRetryable("Fallo temporal.");
+    setOnline(true);
     await controller.syncPending();
     assert.ok(observedLabels.includes("Sincronizando…"));
     assert.equal(controller.getState().items[0].label, "Pendiente de reintento");
@@ -408,8 +409,11 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
     const target = new FakeConnectivityTarget();
     let online = false;
     let uuidCounter = 0;
+    let currentTime = Date.parse("2026-10-25T16:00:00.000Z");
+    let failNextWrite = false;
+    const now = () => new Date(currentTime);
     const receiver = createSyntheticSyncReceiver({
-      now: () => new Date("2026-10-25T16:00:00.000Z")
+      now
     });
 
     const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
@@ -423,7 +427,13 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
         removeEventListener: (type: string, listener: () => void) => target.removeEventListener(type, listener),
         localStorage: {
           getItem: (key: string) => persisted.get(key) ?? null,
-          setItem: (key: string, value: string) => persisted.set(key, value),
+          setItem: (key: string, value: string) => {
+            if (failNextWrite) {
+              failNextWrite = false;
+              throw new Error("Cuota sintética agotada al confirmar");
+            }
+            persisted.set(key, value);
+          },
           removeItem: (key: string) => persisted.delete(key)
         }
       }
@@ -449,7 +459,7 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
         renderer = create(
           createElement(InspectionCapture, {
             transport: receiver.transport,
-            now: () => new Date("2026-10-25T16:00:00.000Z")
+            now
           })
         );
       });
@@ -470,26 +480,26 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
       assert.ok(firstRow);
       assert.equal(firstRow.findByType("strong").children.join(""), "Pendiente de sincronización");
 
-      // Pulsar el botón manual "Sincronizar pendientes" para sincronizar sin recargar la página.
+      // Offline: el botón queda deshabilitado y ni invocar su handler puede enviar.
       const syncButton = renderer!.root.findAll(
         (node) => node.type === "button" && node.children.join("") === "Sincronizar pendientes"
       )[0];
       assert.ok(syncButton, "debe existir el botón Sincronizar pendientes");
+      assert.equal(syncButton.props.disabled, true);
 
       await act(async () => {
         await syncButton.props.onClick();
       });
 
+      assert.equal(receiver.attemptsReceived, 0);
+      assert.equal(firstRow.findByType("strong").children.join(""), "Pendiente de sincronización");
+      online = true;
+      await act(async () => { target.emit("online"); });
       assert.equal(receiver.attemptsReceived, 1);
       assert.equal(receiver.effectsApplied, 1);
       assert.equal(firstRow.findByType("strong").children.join(""), "Sincronizada");
 
       // Preparar segunda captura con "Nueva inspección" estando online, simulando fallo de envío.
-      online = true;
-      await act(async () => {
-        target.emit("online");
-      });
-
       const newButton = renderer!.root.findAll(
         (node) => node.type === "button" && node.children.join("") === "Nueva inspección"
       )[0];
@@ -514,6 +524,38 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
         (node) => node.type === "li" && node.props["data-inspection-id"] === "inspection-local-int-uuid-2"
       )[0];
       assert.equal(secondRow.findByType("strong").children.join(""), "Pendiente de reintento");
+
+      // Al vencer el backoff el botón sí recupera sin recargar. Esta vez falla la
+      // persistencia de la confirmación: el handler no deja un rechazo sin manejar.
+      currentTime += 1000;
+      receiver.setBeforeReceive(() => { failNextWrite = true; });
+      await act(async () => { await syncButton.props.onClick(); });
+      assert.equal(syncButton.props.disabled, false);
+      assert.ok(renderer!.root.findAll(node => node.props.role === "alert" && node.children.join("").includes("almacenamiento")).length > 0);
+      assert.equal(parseSyncSnapshot(persisted.get(SYNC_STORAGE_KEY) ?? null).operations.length, 1);
+      assert.notEqual(secondRow.findByType("strong").children.join(""), "Sincronizando…");
+      receiver.setBeforeReceive(undefined);
+      await act(async () => { await syncButton.props.onClick(); });
+      assert.equal(secondRow.findByType("strong").children.join(""), "Sincronizada");
+      assert.equal(receiver.effectsApplied, 2, "recuperar la confirmación no aplica otra vez la segunda captura");
+
+      // El fallo de confirmación al guardar online tampoco revierte el guardado
+      // ni rechaza el onSubmit; se comunica con una alerta y permite recuperación.
+      await act(async () => {
+        renderer!.root.findAll(node => node.type === "button" && node.children.join("") === "Nueva inspección")[0].props.onClick();
+      });
+      receiver.setBeforeReceive(() => { failNextWrite = true; });
+      await act(async () => {
+        renderer!.root.findByProps({ type: "date" }).props.onChange({ target: { value: "2026-10-25" } });
+        renderer!.root.findByType("textarea").props.onChange({ target: { value: "Tercera captura con fallo al confirmar." } });
+      });
+      await act(async () => { await renderer!.root.findByType("form").props.onSubmit({ preventDefault() {} }); });
+      assert.equal(syncButton.props.disabled, false);
+      assert.equal(parseSyncSnapshot(persisted.get(SYNC_STORAGE_KEY) ?? null).inspections.length, 3);
+      receiver.setBeforeReceive(undefined);
+      await act(async () => { await syncButton.props.onClick(); });
+      assert.equal(receiver.effectsApplied, 3);
+      assert.equal(parseSyncSnapshot(persisted.get(SYNC_STORAGE_KEY) ?? null).operations.length, 0);
     } finally {
       await act(async () => renderer?.unmount());
       for (const [key, descriptor] of [

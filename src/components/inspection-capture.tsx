@@ -90,30 +90,34 @@ export function InspectionCapture({
       active = false;
       unsubscribe();
       instance?.dispose();
+      if (controller.current === instance) controller.current = null;
     };
   }, [loadAttempt, now, retryOptions, storage, transport]);
 
   async function saveInspection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!controller.current || !ready || saving.current || committed.current) return;
+    const activeController = controller.current;
+    if (!activeController || !ready || saving.current || committed.current) return;
     saving.current = true;
     setBusy(true);
     setError("");
     try {
       const draft = inspectionDraftFromForm(values, draftId);
       // La identidad se conserva durante errores y doble clic; solo "Nueva inspección" la cambia.
-      await controller.current.enqueueDraft(draft, { idempotencyKey: `capture:${draftId}` });
+      await activeController.enqueueDraft(draft, { idempotencyKey: `capture:${draftId}` });
+      if (activeController.isDisposed()) return;
       committed.current = true;
       setSaved(true);
     } catch (failure) {
-      setError(failure instanceof SyncSchemaError ? failure.message : "No se pudo guardar. Tu captura sigue en pantalla; revisa el almacenamiento y reintenta.");
+      if (!activeController.isDisposed()) setError(failure instanceof SyncSchemaError ? failure.message : "No se pudo guardar. Tu captura sigue en pantalla; revisa el almacenamiento y reintenta.");
       return;
     } finally {
       saving.current = false;
-      setBusy(false);
+      if (!activeController.isDisposed()) setBusy(false);
     }
-    if (controller.current.isOnline()) {
-      await controller.current.syncPending();
+    if (!activeController.isDisposed() && activeController.isOnline()) {
+      // El controlador publica el fallo; guardar localmente no se revierte por él.
+      await activeController.syncPending().catch(() => undefined);
     }
   }
 
@@ -133,6 +137,11 @@ export function InspectionCapture({
 
   function update(field: keyof InspectionFormValues, value: string) {
     setValues(current => ({ ...current, [field]: value }));
+  }
+
+  async function synchronize() {
+    // El error ya se expone mediante la suscripción y role="alert".
+    await controller.current?.syncPending().catch(() => undefined);
   }
 
   return (
@@ -159,7 +168,7 @@ export function InspectionCapture({
       </form>
       {message ? <p role="status" className="capability-feedback capability-feedback-success">{message}</p> : null}
       {saved ? <button type="button" className="state-action" onClick={newInspection}>Nueva inspección</button> : null}
-      {ready ? <button type="button" className="state-action" disabled={syncing} onClick={() => { void controller.current?.syncPending(); }}>Sincronizar pendientes</button> : null}
+      {ready ? <button type="button" className="state-action" disabled={syncing || online !== true} onClick={synchronize}>Sincronizar pendientes</button> : null}
       {ready ? <details className="capture-capabilities"><summary>Capacidades opcionales</summary><InspectionCapabilities key={draftId} inspectionId={draftId} /></details> : null}
       <section aria-labelledby="local-records-title" className="local-records">
         <h3 id="local-records-title">Inspecciones guardadas en este dispositivo</h3>

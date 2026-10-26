@@ -1,6 +1,6 @@
 # PWA de inspecciones de laboratorio — proyecto del equipo
 
-> Estado actual: [Semana 8, incremento 2/3 de Javier](#semana-8--incremento-de-javier).
+> Estado actual: [Semana 8, integración corregida por Francisco](#semana-8--correcciones-de-francisco-sobre-la-integración).
 > Las secciones anteriores a Semana 8 conservan resultados históricos; no describen todas las comprobaciones actuales.
 
 Comiencen por `START_HERE.md` y lean `ACTIVIDAD-01.md`. Este es un proyecto acumulativo: un repositorio privado por equipo durante el curso. La Semana 1 consiste en arrancar, documentar y explicar la verificación; no en implementar toda la PWA.
@@ -792,3 +792,24 @@ Con Node.js `v20.19.0` y npm `10.8.2`:
 
 - La evidencia completa del experimento de defecto controlado en la rama temporal `w08/javier-defecto-controlado` (defecto en [`2d3a24ac2d22c7341b4287f8b84d23dd2d12ecf3`](https://github.com/imnotfrank-x/pwa-inspecciones-/commit/2d3a24ac2d22c7341b4287f8b84d23dd2d12ecf3), [Actions rojo](https://github.com/imnotfrank-x/pwa-inspecciones-/actions/runs/40250330208), reversión en [`f9c908987a0b7bfa3d3aa0f2f34188d2ef605267`](https://github.com/imnotfrank-x/pwa-inspecciones-/commit/f9c908987a0b7bfa3d3aa0f2f34188d2ef605267) y [Actions verde](https://github.com/imnotfrank-x/pwa-inspecciones-/actions/runs/40250381443)) se encuentra en [docs/controlled-defect.md](docs/controlled-defect.md).
 - **Pendiente para Carlos (incremento 3/3):** pruebas E2E con Playwright sobre servidor de producción (`npm run build && npm run start`), comprobación de recarga offline real con Service Worker, prueba E2E de fallback de capacidades opcionales y cierre final de Semana 8.
+
+## Semana 8 — correcciones de Francisco sobre la integración
+
+Base de Javier conservada: `b38a8ae7f2a3ff1cc940dfad7f56a8ab7ab70bed`. Las correcciones están en `codex/w08-francisco-sync-fixes`, sin reescribir su rama ni sus commits. Las cifras de los apartados anteriores son resultados históricos de cada incremento.
+
+La revisión reprodujo tres fallos pese al CI verde: la acción manual enviaba offline; un fallo al persistir la confirmación dejaba `syncing=true` y un rechazo sin manejar; y el controlador destruido podía iniciar otros envíos. Se corrigieron en controlador, cola y componente:
+
+- Offline no se envía ni se consumen intentos. El botón queda deshabilitado, pero también se protege la llamada directa y cada envío de un lote.
+- Al perder conexión o ejecutar `dispose()`, se permite terminar el envío ya iniciado y guardar su resultado; no se inicia el siguiente. La pausa anterior al transporte restaura la operación sin cambiar su clave ni consumir backoff.
+- Un fallo de almacenamiento libera la UI, publica una alerta y conserva la operación. Si no puede leer, retiene la última copia visible. Reintentar recupera una confirmación pendiente con la misma clave y sin otro efecto remoto.
+- Los rechazos de acciones de UI y del listener `online` se capturan después de publicar el error; las llamadas directas al controlador siguen rechazando ante errores reales, de modo que las pruebas pueden detectarlos.
+
+`tests/integration/sync-regressions.test.ts` agrega diez casos. Ocho de ellos se ejecutaron contra la implementación previa y fallaron antes de corregirla. También se corrigió la prueba de componente que antes esperaba éxito estando offline y se amplió para errores al confirmar mediante botón y formulario. La suite actual contiene **40 casos unitarios y 25 de integración**, además de las diez suites heredadas.
+
+Validación local de las correcciones con Node `v20.19.0` y npm `10.8.2`: instalación limpia, `make verify`, compatibilidad `--run`, check público y `git diff --check` aprobados. Cobertura combinada: líneas/sentencias **63.80% (1939/3039)**, ramas **84.32% (452/536)** y funciones **64.25% (142/221)**. Son mediciones locales, no cobertura E2E ni garantía de ausencia de defectos.
+
+Los comandos siguen siendo `npm ci`, `make verify` (equivalente exacto: `npm run verify`), `npm run test -- --run` y el check público con Bash de Git. El workflow de Semana 8 publica `w08-sync-fixes-<SHA>` con resultados JUnit, logs, reporte de verificación y cobertura; los workflows oficiales anteriores no se modifican. Ver el resultado y runtime del SHA exacto, no una ejecución antigua.
+
+El experimento rojo/verde de Javier se conserva intacto en [docs/controlled-defect.md](docs/controlled-defect.md). Estas correcciones no se le atribuyen; su autoría y la evidencia de los otros integrantes no se alteran. La evidencia adicional de Francisco declara asistencia de Codex y revisión humana pendiente.
+
+Límites: reintentos por acción/evento respetando `nextAttemptAt`, sin temporizador continuo ni garantía de segundo plano; receptor sintético no durable; coordinación limitada a una instancia; sin E2E ni revisión visual nueva en este incremento. Carlos debe comprobar el flujo real con Service Worker y capacidad denegada/ausente antes del cierre. Persisten los tres hallazgos heredados de auditoría de dependencias. No hay merge a `main` ni tags.

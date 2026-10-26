@@ -34,6 +34,12 @@ export type RetryOptions = {
   maxDelayMs?: number;
 };
 
+// Pausar impide iniciar otro envío, pero no descarta la confirmación de uno en vuelo.
+export type SyncExecutionOptions = {
+  shouldContinue?: () => boolean;
+  onSending?: (operation: SyncOperation) => void;
+};
+
 export type SyncSummary = {
   processed: number;
   succeeded: number;
@@ -301,12 +307,12 @@ export class InspectionSyncQueue {
     });
   }
 
-  syncPending(transport: SyncTransport, retryOptions: RetryOptions = {}): Promise<SyncSummary> {
+  syncPending(transport: SyncTransport, retryOptions: RetryOptions = {}, executionOptions: SyncExecutionOptions = {}): Promise<SyncSummary> {
     if (this.activeSync) {
       return this.activeSync;
     }
     const execution = Promise.resolve().then(() =>
-      this.processPending(transport, retryConfiguration(retryOptions))
+      this.processPending(transport, retryConfiguration(retryOptions), executionOptions)
     );
     this.activeSync = execution.finally(() => {
       this.activeSync = null;
@@ -316,15 +322,18 @@ export class InspectionSyncQueue {
 
   private async processPending(
     transport: SyncTransport,
-    config: Required<RetryOptions>
+    config: Required<RetryOptions>,
+    { shouldContinue = () => true, onSending }: SyncExecutionOptions
   ): Promise<SyncSummary> {
     const summary: SyncSummary = {
       processed: 0, succeeded: 0, retried: 0, failed: 0, conflicts: 0, skipped: 0
     };
+    if (!shouldContinue()) return summary;
     // Recovery and all state changes share the enqueue write lock. Network I/O
     // stays outside it so local editing can continue while a request is pending.
     const candidates = await this.serializeWrite(async () => {
       const snapshot = await this.storage.load();
+      if (!shouldContinue()) return [];
       const recoveredAt = assertValidDate(this.now(), "now");
       let recovered = false;
       for (const operation of snapshot.operations) {
@@ -341,8 +350,10 @@ export class InspectionSyncQueue {
     });
 
     for (const id of candidates) {
-      const outgoing = await this.serializeWrite(async () => {
+      if (!shouldContinue()) break;
+      const prepared = await this.serializeWrite(async () => {
         const snapshot = await this.storage.load();
+        if (!shouldContinue()) return undefined;
         const operation = snapshot.operations.find((item) => item.id === id);
         const timestamp = assertValidDate(this.now(), "now");
         if (!operation || (operation.state !== "pending" && operation.state !== "retry") ||
@@ -359,12 +370,29 @@ export class InspectionSyncQueue {
           summary.failed++;
           return undefined;
         }
+        const previous = cloneOperation(operation);
         operation.state = "syncing";
         operation.updatedAt = timestamp;
         await this.storage.save(snapshot);
-        return cloneOperation(operation);
+        return { outgoing: cloneOperation(operation), previous };
       });
-      if (!outgoing) continue;
+      if (!prepared) continue;
+      const { outgoing, previous } = prepared;
+      onSending?.(cloneOperation(outgoing));
+      // La conexión puede cambiar durante storage.save o al notificar a la UI.
+      // Sin envío real no se consume un intento ni se programa backoff.
+      if (!shouldContinue()) {
+        await this.serializeWrite(async () => {
+          const snapshot = await this.storage.load();
+          const operation = snapshot.operations.find(item => item.id === id);
+          if (operation?.state === "syncing") {
+            operation.state = previous.state;
+            operation.updatedAt = previous.updatedAt;
+            await this.storage.save(snapshot);
+          }
+        });
+        break;
+      }
       summary.processed++;
 
       let result: SyncTransportResult;

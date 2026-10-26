@@ -74,7 +74,8 @@ export type SaveInspectionResult = {
 
 export function resolveInspectionVisualState(
   inspection: StoredInspection,
-  operations: SyncOperation[]
+  operations: SyncOperation[],
+  syncing = true
 ): InspectionSyncItemView {
   const operation = operations.find((item) => item.entityId === inspection.id);
 
@@ -82,7 +83,8 @@ export function resolveInspectionVisualState(
   if (operation) {
     switch (operation.state) {
       case "syncing":
-        visualState = "syncing";
+        // Un envío interrumpido persiste como syncing hasta que la cola lo recupere.
+        visualState = syncing ? "syncing" : "retry";
         break;
       case "retry":
         visualState = "retry";
@@ -116,10 +118,11 @@ export function resolveInspectionVisualState(
 }
 
 export function buildInspectionItemViews(
-  snapshot: SyncSnapshot
+  snapshot: SyncSnapshot,
+  syncing = true
 ): InspectionSyncItemView[] {
   return snapshot.inspections.map((inspection) =>
-    resolveInspectionVisualState(inspection, snapshot.operations)
+    resolveInspectionVisualState(inspection, snapshot.operations, syncing)
   );
 }
 
@@ -209,6 +212,10 @@ function summarizeFeedback(
   };
 }
 
+function emptySummary(): SyncSummary {
+  return { processed: 0, succeeded: 0, retried: 0, failed: 0, conflicts: 0, skipped: 0 };
+}
+
 export class SyncController {
   readonly queue: InspectionSyncQueue;
   private readonly transport: SyncTransport;
@@ -251,7 +258,9 @@ export class SyncController {
       online: true
     };
     this.notify();
-    void this.syncPending();
+    // syncPending publica el error recuperable antes de rechazar su promesa.
+    // El evento no tiene un consumidor que pueda esperar/capturar ese rechazo.
+    void this.syncPending().catch(() => undefined);
   };
 
   private readonly handleOffline = (): void => {
@@ -281,7 +290,7 @@ export class SyncController {
     return {
       ...this.state,
       snapshot,
-      items: buildInspectionItemViews(snapshot),
+      items: buildInspectionItemViews(snapshot, this.state.syncing),
       lastSummary: this.state.lastSummary ? { ...this.state.lastSummary } : null
     };
   }
@@ -314,9 +323,10 @@ export class SyncController {
       errorMessage?: string;
     } = {}
   ): void {
+    if (this.disposed) return;
     const cloned = cloneSyncSnapshot(snapshot);
-    const items = buildInspectionItemViews(cloned);
     const syncing = options.syncing ?? this.state.syncing;
+    const items = buildInspectionItemViews(cloned, syncing);
     const summary =
       options.summary !== undefined ? options.summary : this.state.lastSummary;
     const feedback = summarizeFeedback(
@@ -341,7 +351,9 @@ export class SyncController {
   }
 
   async start(): Promise<SyncControllerState> {
+    if (this.disposed) return this.getState();
     const snapshot = await this.queue.getSnapshot();
+    if (this.disposed) return this.getState();
     this.state = {
       ...this.state,
       online: this.onlineCheck()
@@ -359,13 +371,15 @@ export class SyncController {
       (op) => op.state === "pending" || op.state === "retry" || op.state === "syncing"
     );
     if (!this.disposed && this.state.online && hasSendableWork) {
-      await this.syncPending();
+      // La captura local sigue disponible si falla la sincronización inicial.
+      await this.syncPending().catch(() => undefined);
     }
 
     return this.getState();
   }
 
   async refresh(): Promise<SyncControllerState> {
+    if (this.disposed) return this.getState();
     const snapshot = await this.queue.getSnapshot();
     this.applySnapshot(snapshot);
     return this.getState();
@@ -375,8 +389,11 @@ export class SyncController {
     draft: OfflineInspectionDraft,
     options: EnqueueInspectionOptions
   ): Promise<SyncOperation> {
+    if (this.disposed) throw new Error("El controlador de sincronización está cerrado.");
     const operation = await this.queue.enqueueInspection(draft, options);
+    if (this.disposed) return operation;
     const snapshot = await this.queue.getSnapshot();
+    if (this.disposed) return operation;
     this.state = {
       ...this.state,
       online: this.onlineCheck()
@@ -405,11 +422,13 @@ export class SyncController {
   }
 
   syncPending(): Promise<SyncSummary> {
+    if (this.disposed) return Promise.resolve(emptySummary());
     if (this.activeSyncPromise) {
       return this.activeSyncPromise;
     }
 
-    const execution = this.runSyncLoop();
+    // Registrar la promesa antes de notificar: evita reentradas de los subscribers.
+    const execution = Promise.resolve().then(() => this.runSyncLoop());
     this.activeSyncPromise = execution.finally(() => {
       this.activeSyncPromise = null;
     });
@@ -417,64 +436,83 @@ export class SyncController {
   }
 
   private async runSyncLoop(): Promise<SyncSummary> {
-    const combined: SyncSummary = {
-      processed: 0,
-      succeeded: 0,
-      retried: 0,
-      failed: 0,
-      conflicts: 0,
-      skipped: 0
-    };
+    const combined = emptySummary();
     const seenOperationIds = new Set<string>();
+    const canSend = () => !this.disposed && this.isOnline();
 
-    while (true) {
-      const preSyncSnapshot = await this.queue.getSnapshot();
-      this.applySnapshot(preSyncSnapshot, {
-        syncing: true,
-        statusMessage: "Sincronizando…"
-      });
-
-      const batchSummary = await this.queue.syncPending(async (operation) => {
-        seenOperationIds.add(operation.id);
-        const syncingSnapshot = await this.queue.getSnapshot();
-        this.applySnapshot(syncingSnapshot, {
+    try {
+      while (canSend()) {
+        const preSyncSnapshot = await this.queue.getSnapshot();
+        if (!canSend()) break;
+        this.applySnapshot(preSyncSnapshot, {
           syncing: true,
-          statusMessage: "Sincronizando…"
+          statusMessage: "Sincronizando…",
+          errorMessage: ""
         });
-        return this.transport(operation);
-      }, this.retryOptions);
 
-      combined.processed += batchSummary.processed;
-      combined.succeeded += batchSummary.succeeded;
-      combined.retried += batchSummary.retried;
-      combined.failed += batchSummary.failed;
-      combined.conflicts += batchSummary.conflicts;
-      combined.skipped += batchSummary.skipped;
+        const batchSummary = await this.queue.syncPending(this.transport, this.retryOptions, {
+          shouldContinue: canSend,
+          onSending: operation => {
+            seenOperationIds.add(operation.id);
+            const snapshot = cloneSyncSnapshot(this.state.snapshot);
+            snapshot.operations = snapshot.operations.map(item => item.id === operation.id ? operation : item);
+            this.applySnapshot(snapshot, { syncing: true, statusMessage: "Sincronizando…" });
+          }
+        });
+        combined.processed += batchSummary.processed;
+        combined.succeeded += batchSummary.succeeded;
+        combined.retried += batchSummary.retried;
+        combined.failed += batchSummary.failed;
+        combined.conflicts += batchSummary.conflicts;
+        combined.skipped += batchSummary.skipped;
 
-      const postSyncSnapshot = await this.queue.getSnapshot();
-      const nowMs = this.now().getTime();
-      const hasNewPendingOperation = postSyncSnapshot.operations.some(
-        (op) =>
-          op.state === "pending" &&
-          !seenOperationIds.has(op.id) &&
-          (op.nextAttemptAt === null || Date.parse(op.nextAttemptAt) <= nowMs)
-      );
+        if (!canSend()) break;
+        const postSyncSnapshot = await this.queue.getSnapshot();
+        const nowMs = this.now().getTime();
+        const hasNewPendingOperation = postSyncSnapshot.operations.some(
+          op => op.state === "pending" && !seenOperationIds.has(op.id) &&
+            (op.nextAttemptAt === null || Date.parse(op.nextAttemptAt) <= nowMs)
+        );
+        if (!hasNewPendingOperation) break;
+      }
 
-      if (!hasNewPendingOperation || !this.state.online) {
-        this.applySnapshot(postSyncSnapshot, {
+      if (!this.disposed) {
+        const snapshot = await this.queue.getSnapshot();
+        if (this.disposed) return combined;
+        this.applySnapshot(snapshot, {
           syncing: false,
-          summary: combined
+          summary: combined,
+          statusMessage: this.isOnline() ? undefined : "Sin conexión. Los registros pendientes se conservan en este dispositivo."
         });
-        break;
+      }
+      return combined;
+    } catch (error) {
+      if (!this.disposed) {
+        let snapshot = this.state.snapshot;
+        try { snapshot = await this.queue.getSnapshot(); } catch {
+          // Si tampoco podemos leer, conservamos la última copia visible; nunca borramos datos.
+        }
+        this.applySnapshot(snapshot, {
+          syncing: false,
+          summary: null,
+          statusMessage: "Sincronización interrumpida",
+          errorMessage: "No se pudo completar la sincronización. Los datos guardados se conservan; revisa el almacenamiento y vuelve a intentar."
+        });
+      }
+      throw error;
+    } finally {
+      // También liberar la UI si falla la recuperación del snapshot.
+      if (!this.disposed && this.state.syncing) {
+        this.state = { ...this.state, syncing: false };
+        this.notify();
       }
     }
-
-    return combined;
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.state = { ...this.state, syncing: false };
     if (this.listening && this.target) {
       this.target.removeEventListener("online", this.handleOnline);
       this.target.removeEventListener("offline", this.handleOffline);

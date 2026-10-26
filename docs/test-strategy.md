@@ -2,7 +2,7 @@
 
 ## Estado y alcance
 
-Incremento 2/3: Javier (sobre la base 1/3 de Francisco `942cf9759b0c1b8e962fd39560e5fdb88d0dc841` y Semana 6 `47a62af152bd9b7d1c87ff6963a8a5991dcd8d70`).
+Incremento 2/3: Javier, con correcciones posteriores de Francisco sobre `b38a8ae7f2a3ff1cc940dfad7f56a8ab7ab70bed` (base 1/3 `942cf9759b0c1b8e962fd39560e5fdb88d0dc841` y Semana 6 `47a62af152bd9b7d1c87ff6963a8a5991dcd8d70`).
 Semana 7 correspondió a exámenes. Continuamos la misma PWA, sin starter nuevo.
 Este documento distingue implementado, comprobado y pendiente; un workflow verde
 de este incremento NO demuestra el cumplimiento completo de Semana 8: las pruebas
@@ -80,6 +80,7 @@ pruebas de integración con persistencia JSON real (`JsonSyncStorage`):
 | Doble envío, pérdida de captura ante cuota agotada | Componente en memoria: `tests/unit/capture-component.test.ts` | No duplica; conserva campos tras fallo; recupera guardado al remontar; no sobrescribe JSON corrupto | Implementado, Francisco |
 | Persistencia offline, deduplicación y respuesta perdida | Integración: `tests/integration/offline-sync.test.ts` | `JsonSyncStorage` real + cola real + receptor sintético + reloj controlado: 2 intentos recibidos producen 1 efecto remoto y dejan la inspección en `synced` con 0 operaciones pendientes | Implementado, Javier |
 | Reconexión, concurrencia, estados visibles y captura durante envío | Integración: `tests/integration/sync-controller.test.ts` | Controlador real + UI: evento `online`, acción manual respetando `nextAttemptAt`, 6 estados visibles, limpieza al desmontar y captura en vuelo sin pérdida | Implementado, Javier |
+| Enviar offline, bloqueo tras fallo local y trabajo después de dispose | Integración: `tests/integration/sync-regressions.test.ts`, ampliación de prueba de componente | Cero envíos offline; liberar UI y conservar clave tras fallos de lectura/escritura; terminar solo el envío iniciado; recuperar sin duplicados | Corregido, Francisco |
 | Recarga realmente sin red | E2E: `tests/e2e/` | Captura mediante UI, offline real del navegador, recarga, reconexión y una fila sincronizada | Pendiente, Carlos |
 | Capacidad denegada o ausente bloquea captura | E2E: `tests/e2e/` | API simulada en el navegador; fallback visible y recorrido completo exitoso | Pendiente, Carlos |
 | Prueba incapaz de detectar regresión | Rama temporal `w08/javier-defecto-controlado` y [docs/controlled-defect.md](controlled-defect.md) | Desactivar el retorno idempotente hace fallar el caso de respuesta perdida (`actual: 2 !== expected: 1`); `git revert` restablece verde | Implementado, Javier; Carlos verifica trazabilidad final |
@@ -114,7 +115,7 @@ pruebas heredadas como regresión adicional, sin contarlas como E2E.
 | `npm run lint` | Lint obligatorio (`src`, `tests/unit`, `tests/integration`, `tests/fixtures`, `scripts`), sin advertencias toleradas |
 | `npm run typecheck` | Tipos de app y pruebas (`unit` + `integration`), sin artefactos incrementales |
 | `npm run test:unit` | Unitarias y componente en memoria (40 casos); `test-results/unit.xml` |
-| `npm run test:integration` | Integración de persistencia JSON, receptor sintético, controlador y UI (15 casos); `test-results/integration.xml` |
+| `npm run test:integration` | Integración de persistencia JSON, receptor sintético, controlador y UI (25 casos tras correcciones); `test-results/integration.xml` |
 | `npm test` | Diez suites heredadas + `test:unit` + `test:integration` |
 | `npm run test -- --run` | Misma comprobación acumulativa compatible con workflows previos |
 | `npm run test:coverage` | Cobertura unificada de `unit` + `integration` en `coverage/` |
@@ -126,7 +127,7 @@ pruebas heredadas como regresión adicional, sin contarlas como E2E.
 
 `.github/workflows/academic-evaluation.yml` (incremento 2 de 3) ejecuta `npm ci` y
 `make verify` en Linux con Node de `.nvmrc`. Publica con `if: always()` el artefacto
-`w08-javier-<SHA>`: `reports/verification.json`, `test-results/` (`unit.xml`,
+`w08-sync-fixes-<SHA>` tras las correcciones (antes `w08-javier-<SHA>`): `reports/verification.json`, `test-results/` (`unit.xml`,
 `integration.xml` y logs) y `coverage/`. Los workflows oficiales anteriores se
 conservan sin cambios.
 
@@ -147,6 +148,45 @@ ejecutados en 0%) fue:
 - Destacados del incremento: `inspection-capture.tsx` 98.87% de líneas, `capture.ts` 100%,
   `schema.ts` 98.17%, `sync-controller.ts` 96.94%, `synthetic-transport.ts` 91.91% y
   `queue.ts` 75.83%.
+
+## Correcciones de Francisco posteriores a la revisión
+
+El SHA de Javier se conserva como antecedente. Se introdujeron tres reproducciones
+en una copia aislada: envío manual con `online=false` (observado: 1 envío y `synced`,
+esperado: 0 y pendiente); fallo de escritura de confirmación (observado: `syncing=true`
+y error vacío, esperado: liberar la UI y avisar); y `dispose()` durante un envío con
+otra captura pendiente (observado: 2 envíos, esperado: finalizar solo 1 y conservar el otro).
+
+Se convirtieron en pruebas permanentes; los ocho primeros escenarios de regresión
+fallaron sobre el código anterior, incluyendo un rechazo sin manejar del evento
+`online`. Después se añadieron dos casos de pausa justo antes de transmitir y error
+de sincronización al montar. El test de React se amplió para comprobar alerta y botón
+habilitado tras un fallo al confirmar, y la recuperación idempotente. Un selector
+del test retenía un botón de nueva inspección ya desmontado: se corrigió consultando
+el nodo vigente, no cambiando la expectativa de comportamiento.
+
+La cola acepta opcionalmente `shouldContinue` y `onSending` en un tercer argumento;
+las llamadas existentes conservan su contrato. Comprueba continuidad antes de cada
+envío, incluso después de persistir `syncing` y notificar progreso. Una pausa sin
+transporte restaura estado/fecha anteriores sin consumir intentos. El resultado de
+un envío ya iniciado sí se persiste, aunque se haya desmontado la vista o perdido red.
+
+El controlador libera `syncing` y comunica errores de almacenamiento, conservando
+la última copia visible si tampoco puede leer. No inventa un éxito: las llamadas
+directas rechazan ante errores reales. Los consumidores de UI/eventos capturan ese
+rechazo ya comunicado. Un registro persistido como `syncing` tras fallo de confirmación
+se presenta como pendiente de reintento cuando no hay envío activo; la cola lo recupera
+con la misma clave. No se modificó el receptor ni el experimento de Javier.
+
+Se conservan 40 unitarias; ahora hay 25 pruebas de integración en tres suites. Los
+resultados originales de 15 y sus porcentajes anteriores se mantienen como históricos.
+La cobertura actual se obtiene de `coverage/coverage-summary.json` y del artefacto del
+SHA corregido, sin umbral arbitrario. E2E y revisión humana siguen pendientes.
+
+La ejecución local de las correcciones (Node `v20.19.0`, npm `10.8.2`) aprobó
+`npm ci`, `make verify`, `npm run test -- --run`, check público y `git diff --check`.
+Cobertura combinada: líneas/sentencias 63.80% (1939/3039), ramas 84.32% (452/536)
+y funciones 64.25% (142/221), incluyendo los módulos no ejecutados en el denominador.
 
 ## Experimento de defecto controlado y cierre pendiente
 
