@@ -216,10 +216,6 @@ export class SyntheticSyncReceiver {
       };
     }
 
-    if (existing) {
-      return { ...existing.result };
-    }
-
     this.effectsCount += 1;
     const serverVersion = Math.max(currentRemote?.version ?? 0, operation.baseVersion) + 1;
     const serverUpdatedAt = this.now().toISOString();
