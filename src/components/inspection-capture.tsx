@@ -10,6 +10,7 @@ import {
   type SyncController
 } from "../lib/sync/sync-controller";
 import { createSyntheticSyncReceiver } from "../lib/sync/synthetic-transport";
+import { createConnectivityGate } from "../lib/sync/connectivity";
 import { InspectionCapabilities } from "./inspection-capabilities";
 
 const EMPTY_FORM: InspectionFormValues = {
@@ -49,19 +50,34 @@ export function InspectionCapture({
   useEffect(() => {
     let active = true;
     let unsubscribe: () => void = () => undefined;
+    let disposeConnectivity: () => void = () => undefined;
     let instance: SyncController | null = null;
     async function load() {
       try {
         const localStorageAdapter = storage ?? createBrowserSyncStorage();
         const localQueue = createSyncQueue({ storage: localStorageAdapter, now });
         const receiver = createSyntheticSyncReceiver({ now });
+        let sessionStorageAdapter: Storage | undefined;
+        try { sessionStorageAdapter = window.sessionStorage; } catch {
+          // El gate conserva una señal en memoria si sessionStorage está bloqueado.
+        }
+        const navigation = typeof performance !== "undefined"
+          ? performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined
+          : undefined;
+        const connectivity = createConnectivityGate({
+          target: window,
+          storage: sessionStorageAdapter,
+          navigationType: navigation?.type,
+          readOnline: () => (typeof navigator !== "undefined" ? navigator.onLine : true)
+        });
+        disposeConnectivity = connectivity.dispose;
         instance = createSyncController({
           queue: localQueue,
           transport: transport ?? receiver.transport,
           retryOptions,
           now,
           target: typeof window !== "undefined" ? window : undefined,
-          isOnline: () => (typeof navigator !== "undefined" ? navigator.onLine : true)
+          isOnline: connectivity.isOnline
         });
         unsubscribe = instance.subscribe(next => {
           if (!active) return;
@@ -90,6 +106,7 @@ export function InspectionCapture({
       active = false;
       unsubscribe();
       instance?.dispose();
+      disposeConnectivity();
       if (controller.current === instance) controller.current = null;
     };
   }, [loadAttempt, now, retryOptions, storage, transport]);

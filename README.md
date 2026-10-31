@@ -970,11 +970,14 @@ El CI de `d1f60e0` aprobó verify, pero falló en el E2E offline: al leer la ins
 después de recargar, la operación ya estaba sincronizada antes de la reconexión
 programada por el test. Se reforzó el caso en `6cc6387` con comprobaciones de
 `navigator.onLine`, estado pendiente y botón deshabilitado después de recargar.
-La repetición confirmó que no era solo una aserción inestable: el controlador de la
-página anterior podía permanecer activo durante `reload`, porque el navegador no
-garantiza que React ejecute su cleanup antes de abandonar el documento. El controlador
-ahora escucha `pagehide`, se cierra y elimina sus listeners antes de la nueva página;
-la regresión de integración comprueba que conserva la cola pendiente y no envía.
+La repetición confirmó que no era solo una aserción inestable. Cerrar el controlador
+anterior mediante `pagehide` fue necesario, pero otra ejecución demostró que no era
+suficiente: `navigator.onLine` podía leerse como verdadero durante el arranque de una
+recarga todavía offline. `connectivity.ts` conserva en `sessionStorage` el último evento
+offline durante una recarga y solo lo limpia ante un evento online real; una navegación
+nueva online descarta el marcador para que no quede bloqueado indefinidamente. El
+controlador también escucha `pagehide`, se cierra y elimina sus listeners. Las regresiones
+de integración comprueban ambos límites y conservan la cola pendiente sin enviarla.
 Se retiró todo el registro diagnóstico temporal. Para detectar recurrencias, CI ejecuta
 `npm run verify` y `npm run test:e2e -- --repeat-each=3`: los dos casos deben aprobar
 sus tres ejecuciones (6 en total), con `retries: 0`. No se elimina ninguna aserción.

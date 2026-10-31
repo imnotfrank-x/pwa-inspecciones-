@@ -18,6 +18,7 @@ import {
   type SyncControllerState
 } from "../../src/lib/sync/sync-controller";
 import { createSyntheticSyncReceiver } from "../../src/lib/sync/synthetic-transport";
+import { CONNECTIVITY_SESSION_KEY, createConnectivityGate } from "../../src/lib/sync/connectivity";
 
 class MapStorage implements StorageLike {
   private readonly entries = new Map<string, string>();
@@ -115,6 +116,30 @@ function createDeferred<T = void>() {
 }
 
 describe("Integración del controlador de sincronización y la interfaz", () => {
+  it("una recarga conserva offline hasta recibir un evento online real", () => {
+    const target = new FakeConnectivityTarget();
+    const entries = new Map<string, string>([[CONNECTIVITY_SESSION_KEY, "1"]]);
+    const online = true;
+    const gate = createConnectivityGate({
+      target,
+      navigationType: "reload",
+      readOnline: () => online,
+      storage: {
+        getItem: key => entries.get(key) ?? null,
+        setItem: (key, value) => { entries.set(key, value); },
+        removeItem: key => { entries.delete(key); }
+      }
+    });
+
+    assert.equal(gate.isOnline(), false, "una lectura transitoria true no debe vaciar la cola");
+    target.emit("online");
+    assert.equal(gate.isOnline(), true);
+    assert.equal(entries.has(CONNECTIVITY_SESSION_KEY), false);
+    gate.dispose();
+    assert.equal(target.listenerCount("online"), 0);
+    assert.equal(target.listenerCount("offline"), 0);
+  });
+
   it("guarda sin conexión sin enviar y sincroniza una sola vez al recibir el evento online", async () => {
     const { controller, receiver, setOnline } = setupControllerTest(false);
     await controller.start();
