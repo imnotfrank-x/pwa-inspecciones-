@@ -974,10 +974,11 @@ La repetición confirmó que no era solo una aserción inestable. Cerrar el cont
 anterior mediante `pagehide` fue necesario, pero otra ejecución demostró que no era
 suficiente: `navigator.onLine` podía leerse como verdadero durante el arranque de una
 recarga todavía offline. `connectivity.ts` conserva en `sessionStorage` el último evento
-offline durante una recarga y solo lo limpia ante un evento online real; una navegación
-nueva online descarta el marcador para que no quede bloqueado indefinidamente. El
+offline y solo lo limpia ante un evento online real o una respuesta de red confirmada
+mediante `HEAD /manifest.webmanifest` sin caché y con timeout de tres segundos. El
 controlador también escucha `pagehide`, se cierra y elimina sus listeners. Las regresiones
-de integración comprueban ambos límites y conservan la cola pendiente sin enviarla.
+de integración comprueban ambos límites, la recuperación de un marcador antiguo y la
+conservación de la cola pendiente sin enviarla.
 Se retiró todo el registro diagnóstico temporal. Para detectar recurrencias, CI ejecuta
 `npm run verify` y `npm run test:e2e -- --repeat-each=3`: los dos casos deben aprobar
 sus tres ejecuciones (6 en total), con `retries: 0`. No se elimina ninguna aserción.

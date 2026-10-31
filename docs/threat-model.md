@@ -85,8 +85,8 @@ cobertura y build. `npm run verify:all` añade los E2E existentes tras compilar.
 La cobertura incorpora seguridad y mantiene archivos no ejecutados en el denominador.
 La recarga offline conserva además la última señal `offline` en `sessionStorage` para
 que una lectura transitoria de `navigator.onLine` no vacíe la cola. El marcador solo
-vive en la sesión del tab: un evento online lo elimina y una navegación nueva online
-descarta un valor antiguo. No sustituye una comprobación real del transporte remoto.
+vive en la sesión del tab: un evento online o un `HEAD` sin caché confirmado lo elimina.
+Esta sonda prueba conectividad al mismo origen, no el transporte remoto completo.
 El CLI se prueba como caja negra sin instrumentación V8 del subproceso: el cargador
 tsx genera sourcemaps `data:` que c8 no puede normalizar. La lógica del detector se
 ejecuta y mide en el proceso principal; no se excluyen sus módulos del denominador.

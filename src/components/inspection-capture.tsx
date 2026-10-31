@@ -61,16 +61,28 @@ export function InspectionCapture({
         try { sessionStorageAdapter = window.sessionStorage; } catch {
           // El gate conserva una señal en memoria si sessionStorage está bloqueado.
         }
-        const navigation = typeof performance !== "undefined"
-          ? performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined
-          : undefined;
         const connectivity = createConnectivityGate({
           target: window,
           storage: sessionStorageAdapter,
-          navigationType: navigation?.type,
-          readOnline: () => (typeof navigator !== "undefined" ? navigator.onLine : true)
+          readOnline: () => (typeof navigator !== "undefined" ? navigator.onLine : true),
+          probeOnline: async () => {
+            const abort = new AbortController();
+            const timeout = window.setTimeout(() => abort.abort(), 3000);
+            try {
+              const response = await fetch("/manifest.webmanifest", {
+                method: "HEAD",
+                cache: "no-store",
+                signal: abort.signal
+              });
+              return response.ok;
+            } finally {
+              window.clearTimeout(timeout);
+            }
+          }
         });
         disposeConnectivity = connectivity.dispose;
+        await connectivity.initialize();
+        if (!active) return;
         instance = createSyncController({
           queue: localQueue,
           transport: transport ?? receiver.transport,
