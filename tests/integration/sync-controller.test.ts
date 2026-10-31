@@ -52,7 +52,7 @@ class FakeConnectivityTarget implements ConnectivityEventTarget {
     return this.listeners.get(type)?.size ?? 0;
   }
 
-  emit(type: "online" | "offline"): void {
+  emit(type: "online" | "offline" | "pagehide"): void {
     const set = this.listeners.get(type);
     if (!set) return;
     for (const listener of Array.from(set)) {
@@ -365,7 +365,7 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
     controller.dispose();
   });
 
-  it("al desmontar limpia listeners, evita actualizar la instancia destruida y conserva el trabajo pendiente", async () => {
+  it("pagehide cierra la instancia anterior, limpia listeners y conserva el trabajo pendiente", async () => {
     const { controller, receiver, target, rawStorage, now } = setupControllerTest(false);
     await controller.start();
 
@@ -379,11 +379,13 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
 
     assert.equal(target.listenerCount("online"), 1);
     assert.equal(target.listenerCount("offline"), 1);
+    assert.equal(target.listenerCount("pagehide"), 1);
 
-    controller.dispose();
+    target.emit("pagehide");
 
     assert.equal(target.listenerCount("online"), 0);
     assert.equal(target.listenerCount("offline"), 0);
+    assert.equal(target.listenerCount("pagehide"), 0);
 
     target.emit("online");
     assert.equal(receiver.attemptsReceived, 0);

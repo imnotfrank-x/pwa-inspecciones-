@@ -969,10 +969,13 @@ La primera ejecución de CI falló por este último problema; no se presenta com
 El CI de `d1f60e0` aprobó verify, pero falló en el E2E offline: al leer la instantánea
 después de recargar, la operación ya estaba sincronizada antes de la reconexión
 programada por el test. Se reforzó el caso en `6cc6387` con comprobaciones de
-`navigator.onLine`, estado pendiente y botón deshabilitado después de recargar,
-y registro diagnóstico de eventos sin sustituir la API. Esa ejecución aprobó.
-La causa del fallo anterior no está confirmada; no se atribuye sin evidencia al
-producto ni al navegador. Para detectar recurrencias, CI ejecuta
+`navigator.onLine`, estado pendiente y botón deshabilitado después de recargar.
+La repetición confirmó que no era solo una aserción inestable: el controlador de la
+página anterior podía permanecer activo durante `reload`, porque el navegador no
+garantiza que React ejecute su cleanup antes de abandonar el documento. El controlador
+ahora escucha `pagehide`, se cierra y elimina sus listeners antes de la nueva página;
+la regresión de integración comprueba que conserva la cola pendiente y no envía.
+Se retiró todo el registro diagnóstico temporal. Para detectar recurrencias, CI ejecuta
 `npm run verify` y `npm run test:e2e -- --repeat-each=3`: los dos casos deben aprobar
 sus tres ejecuciones (6 en total), con `retries: 0`. No se elimina ninguna aserción.
 

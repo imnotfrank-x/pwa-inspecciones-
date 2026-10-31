@@ -25,27 +25,6 @@ async function readStoredSnapshot(page: import("@playwright/test").Page) {
 
 test("captura offline, recarga, reconecta y no duplica la inspección", async ({ context }) => {
   const page = await context.newPage();
-  // Registrar la señal nativa sin sustituirla: permite distinguir un fallo de
-  // emulación de red de un envío indebido de la aplicación después de recargar.
-  await page.addInitScript(() => {
-    const report = () => console.info("E2E connectivity", navigator.onLine);
-    report();
-    window.addEventListener("online", report);
-    window.addEventListener("offline", report);
-    const setItem = Storage.prototype.setItem;
-    Storage.prototype.setItem = function (key: string, value: string) {
-      if (key === "utt-lab-inspections:sync:v1") {
-        const snapshot = JSON.parse(value);
-        console.info("E2E storage write", JSON.stringify({
-          online: navigator.onLine,
-          states: snapshot.inspections.map((item: { syncState: string }) => item.syncState),
-          operations: snapshot.operations.length,
-          stack: new Error().stack,
-        }));
-      }
-      return setItem.call(this, key, value);
-    };
-  });
 
   try {
     await page.goto("/inspecciones");

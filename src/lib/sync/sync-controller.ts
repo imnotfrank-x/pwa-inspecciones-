@@ -272,6 +272,12 @@ export class SyncController {
     this.notify();
   };
 
+  private readonly handlePageHide = (): void => {
+    // React no garantiza ejecutar el cleanup antes de una recarga. Cerrar aquí
+    // evita que la instancia de la página anterior confirme trabajo pendiente.
+    this.dispose();
+  };
+
   isOnline(): boolean {
     const current = this.onlineCheck();
     this.state = {
@@ -362,6 +368,7 @@ export class SyncController {
     if (!this.disposed && !this.listening && this.target) {
       this.target.addEventListener("online", this.handleOnline);
       this.target.addEventListener("offline", this.handleOffline);
+      this.target.addEventListener("pagehide", this.handlePageHide);
       this.listening = true;
     }
 
@@ -516,6 +523,7 @@ export class SyncController {
     if (this.listening && this.target) {
       this.target.removeEventListener("online", this.handleOnline);
       this.target.removeEventListener("offline", this.handleOffline);
+      this.target.removeEventListener("pagehide", this.handlePageHide);
       this.listening = false;
     }
     this.subscribers.clear();
