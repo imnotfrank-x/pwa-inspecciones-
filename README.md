@@ -946,33 +946,35 @@ se incorporará íntegro durante el cierre, junto con los entregables restantes.
 
 ### Estado real de la comprobación local (31 de octubre de 2026)
 
-Antes de intentar la instalación limpia, aprobaron las diez suites heredadas,
-40 unitarias, 25 de integración y los primeros 17 casos de seguridad. El detector
-analizó 94 archivos sin coincidencias en ese momento. Se añadió posteriormente
-un caso de operaciones huérfanas/escritura excesiva (18 casos previstos en total),
-que aún requiere ejecución con las dependencias restauradas. Lint detectó una
-barra escapada innecesaria en la expresión del detector y se corrigió.
+La instalación limpia terminó correctamente con `npm ci --prefer-offline --no-audit
+--fetch-retries=0 --fetch-timeout=20000`; conserva el lockfile y separa la auditoría
+en un comando explícito. `make verify` terminó con `Verificación técnica: pass`:
+estructura, lint, tipos, detector, pruebas, cobertura y build aprobados.
 
-La comprobación de tipos inicial encontró Playwright ausente en esta copia local.
-La instalación limpia `npm ci --prefer-offline --no-audit --fetch-retries=0
---fetch-timeout=15000` falló con `EIDLETIMEOUT` del registro npm y un aviso de limpieza
-`EPERM`. El intento offline devolvió `ENOTCACHED` para Playwright Core. Por tanto,
-`node_modules` quedó incompleto; **instalación limpia, tipos, lint final, build,
-cobertura final y E2E todavía no están aprobados para este incremento**.
+- Diez suites heredadas en PASS, 40/40 unitarias, 25/25 de integración y 18/18 de seguridad.
+- `npm run test -- --run`: aprobado; check público acumulativo: `PUBLIC_OK`.
+- Detector: 95 archivos analizados sin coincidencias de sus patrones conocidos.
+- Cobertura de unitarias + integración + seguridad: líneas/sentencias 64.53%
+  (2002/3102), ramas 84.97% (509/599), funciones 67.35% (163/242).
+- `git diff --check`: limpio. E2E locales de Semana 9 no ejecutados; los dos casos
+  existentes se ejecutan en Actions mediante `verify:all` sobre el SHA publicado.
 
-`git fetch` falló por resolución de `github.com`; otro intento se interrumpió al
-no completar. No se ha podido confirmar el remoto actualizado ni publicar/comprobar
-CI de esta rama. La auditoría online de dependencias también queda pendiente: un
-resultado offline vacío no se interpreta como ausencia de vulnerabilidades.
-No se cambiaron versiones ni lockfile para ocultar este bloqueo de entorno.
+Incidentes resueltos: faltaban dependencias de Playwright y hubo fallos DNS,
+`EIDLETIMEOUT`, `EPERM` y `ENOTCACHED`. Tras recuperar conectividad se reinstaló
+correctamente. También se corrigieron un escape innecesario de lint y un fallo
+de c8 al leer sourcemaps `data:` del cargador tsx del CLI hijo. Ese subproceso se
+comprueba como caja negra; el detector mantiene cobertura en el proceso principal.
+La primera ejecución de CI falló por este último problema; no se presenta como aprobada.
 
-Se pudo ejecutar de nuevo solo el detector usando el cargador tsx ya instalado en
-la otra copia local del proyecto: `node --import
-file:///C:/Users/Frank/Documents/10MO/PWA/node_modules/tsx/dist/loader.mjs
-scripts/check-secrets.mjs`. Analizó 95 archivos sin coincidencias. Es una comprobación
-parcial de diagnóstico, no una instalación limpia ni sustituto de verify.
+**Riesgo pendiente de dependencias:** la auditoría online del 31/10/2026 terminó
+con código 1 y reportó 17 paquetes afectados (14 moderados, 2 altos, 1 crítico).
+Comando: `npm audit --json --fetch-retries=0 --fetch-timeout=20000`.
+El informe propone Next.js 16.4.3 como actualización mayor desde 14.2.35; no se
+cambiaron dependencias ni se aplicó una actualización forzada sin revisar compatibilidad.
+Este riesgo debe revisarse antes del cierre de seguridad o despliegue real.
 
 El check público del ZIP usa palabras genéricas y puede devolver `PUBLIC_OK` pese
-a coincidencias; el diagnóstico está en el modelo de amenazas. Los comandos anteriores
-deben repetirse tras recuperar conectividad antes del pase a Javier. La revisión
-personal de Francisco sigue pendiente y no se atribuye a las ejecuciones de Codex.
+a coincidencias; el diagnóstico está en el modelo de amenazas. El workflow oficial
+W09 y los demás entregables se integrarán al cierre. La revisión personal de Francisco
+sigue pendiente y no se atribuye a las ejecuciones de Codex. El resultado remoto debe
+comprobarse en Actions para el SHA exacto del pase a Javier.

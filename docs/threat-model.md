@@ -40,7 +40,7 @@ la revisión de acceso y minimización documental corresponde al cierre del equi
 | T07 | Persistencia o transmisión excesiva de imágenes/ubicación | Inventario, minimización, retención y eliminación de datos | Inventario y pruebas de privacidad a incorporar | Pendiente Carlos; capacidades actuales usan valores temporales y fallback |
 | T08 | Robo o modificación de localStorage por otro script del mismo origen | Reducir superficie con CSP y minimizar datos | Controles presentes y pendientes anteriores | No hay cifrado local ni aislamiento frente a un script del mismo origen comprometido |
 | T09 | Duplicación o pérdida de una operación al reconectar | Cola idempotente y receptor sintético; exclusión de envíos concurrentes | Integración de Semana 8 y regresiones de conectividad | Conservado. Sin coordinación entre pestañas ni servidor durable |
-| T10 | Dependencia vulnerable o transporte sin cifrar | Lockfile, instalación reproducible, auditoría y HTTPS en despliegue | CI de instalación/build; informe de auditoría cuando pueda consultar el registro | Auditoría actual y URL HTTPS pendientes de confirmar; localhost no acredita HTTPS de despliegue |
+| T10 | Dependencia vulnerable o transporte sin cifrar | Lockfile, instalación reproducible, auditoría y HTTPS en despliegue | Auditoría online del 31/10/2026: 17 paquetes afectados (14 moderados, 2 altos, 1 crítico) | Riesgo abierto: Next.js requiere evaluar una actualización mayor. URL HTTPS pendiente de confirmar; localhost no acredita HTTPS de despliegue |
 
 ## Decisiones de validación
 
@@ -83,6 +83,18 @@ no demuestra ausencia de secretos y no reemplaza las comprobaciones propias.
 `make verify` equivale a `npm run verify`: estructura, lint, tipos, secretos, pruebas,
 cobertura y build. `npm run verify:all` añade los E2E existentes tras compilar.
 La cobertura incorpora seguridad y mantiene archivos no ejecutados en el denominador.
+El CLI se prueba como caja negra sin instrumentación V8 del subproceso: el cargador
+tsx genera sourcemaps `data:` que c8 no puede normalizar. La lógica del detector se
+ejecuta y mide en el proceso principal; no se excluyen sus módulos del denominador.
+
+La auditoría online (`npm audit --json --fetch-retries=0 --fetch-timeout=20000`)
+terminó con código 1 por hallazgos, no por un error de conexión. Reportó 17 paquetes
+afectados: 14 moderados, 2 altos y 1 crítico. El informe recomienda Next.js 16.4.3
+como cambio mayor frente a 14.2.35. No se aplicó `npm audit fix --force`: la migración
+requiere revisar compatibilidad de React, renderizado, CSP y funcionamiento offline.
+Estos hallazgos no prueban explotación de esta app, pero siguen abiertos; pruebas
+funcionales aprobadas no equivalen a dependencias sin vulnerabilidades. La revisión
+de actualización debe realizarse antes del cierre de seguridad o un despliegue real.
 
 El workflow propio acumulativo ejecuta verify:all. El workflow oficial de Semana 9,
 inventario y robots se incorporarán durante el cierre, sin crear archivos vacíos para
