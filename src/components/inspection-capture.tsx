@@ -61,7 +61,11 @@ export function InspectionCapture({
           retryOptions,
           now,
           target: typeof window !== "undefined" ? window : undefined,
-          isOnline: () => (typeof navigator !== "undefined" ? navigator.onLine : true)
+          isOnline: () => {
+            const connected = typeof navigator !== "undefined" ? navigator.onLine : true;
+            console.info("W09 connectivity diagnostic", connected, window.location.href);
+            return connected;
+          }
         });
         unsubscribe = instance.subscribe(next => {
           if (!active) return;
