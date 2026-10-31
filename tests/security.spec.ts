@@ -86,7 +86,11 @@ describe("Seguridad W09: detector de secretos sin revelar valores", () => {
       execFileSync("git", ["init", "--quiet", root]);
       writeFileSync(resolve(root, ".gitignore"), "test-results/\n");
       writeFileSync(resolve(root, "clean.txt"), "Documentación de secretos sin credenciales.");
-      const run = () => spawnSync(process.execPath, ["--import", "tsx", "scripts/check-secrets.mjs", root], { cwd: resolve(import.meta.dirname, ".."), encoding: "utf8" });
+      // El CLI se comprueba como caja negra. Su cargador ESM emite sourcemaps data:
+      // que c8 no puede normalizar; la lógica del detector se cubre en este proceso.
+      const environment = { ...process.env };
+      environment.NODE_V8_COVERAGE = "";
+      const run = () => spawnSync(process.execPath, ["--import", "tsx", "scripts/check-secrets.mjs", root], { cwd: resolve(import.meta.dirname, ".."), encoding: "utf8", env: environment });
       assert.equal(run().status, 0);
       const credential = ["ghp", "C".repeat(36)].join("_");
       writeFileSync(resolve(root, "fixture.txt"), credential);
