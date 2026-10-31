@@ -957,7 +957,7 @@ estructura, lint, tipos, detector, pruebas, cobertura y build aprobados.
 - Cobertura de unitarias + integración + seguridad: líneas/sentencias 64.53%
   (2002/3102), ramas 84.97% (509/599), funciones 67.35% (163/242).
 - `git diff --check`: limpio. E2E locales de Semana 9 no ejecutados; los dos casos
-  existentes se ejecutan en Actions mediante `verify:all` sobre el SHA publicado.
+  existentes se ejecutan en Actions después de verify sobre el SHA publicado.
 
 Incidentes resueltos: faltaban dependencias de Playwright y hubo fallos DNS,
 `EIDLETIMEOUT`, `EPERM` y `ENOTCACHED`. Tras recuperar conectividad se reinstaló
@@ -965,6 +965,16 @@ correctamente. También se corrigieron un escape innecesario de lint y un fallo
 de c8 al leer sourcemaps `data:` del cargador tsx del CLI hijo. Ese subproceso se
 comprueba como caja negra; el detector mantiene cobertura en el proceso principal.
 La primera ejecución de CI falló por este último problema; no se presenta como aprobada.
+
+El CI de `d1f60e0` aprobó verify, pero falló en el E2E offline: al leer la instantánea
+después de recargar, la operación ya estaba sincronizada antes de la reconexión
+programada por el test. Se reforzó el caso en `6cc6387` con comprobaciones de
+`navigator.onLine`, estado pendiente y botón deshabilitado después de recargar,
+y registro diagnóstico de eventos sin sustituir la API. Esa ejecución aprobó.
+La causa del fallo anterior no está confirmada; no se atribuye sin evidencia al
+producto ni al navegador. Para detectar recurrencias, CI ejecuta
+`npm run verify` y `npm run test:e2e -- --repeat-each=3`: los dos casos deben aprobar
+sus tres ejecuciones (6 en total), con `retries: 0`. No se elimina ninguna aserción.
 
 **Riesgo pendiente de dependencias:** la auditoría online del 31/10/2026 terminó
 con código 1 y reportó 17 paquetes afectados (14 moderados, 2 altos, 1 crítico).

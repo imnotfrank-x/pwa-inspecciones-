@@ -96,7 +96,8 @@ Estos hallazgos no prueban explotación de esta app, pero siguen abiertos; prueb
 funcionales aprobadas no equivalen a dependencias sin vulnerabilidades. La revisión
 de actualización debe realizarse antes del cierre de seguridad o un despliegue real.
 
-El workflow propio acumulativo ejecuta verify:all. El workflow oficial de Semana 9,
+El workflow propio acumulativo ejecuta verify y cada E2E tres veces, sin reintentos;
+verify:all sigue disponible para una ejecución local de los dos casos. El workflow oficial de Semana 9,
 inventario y robots se incorporarán durante el cierre, sin crear archivos vacíos para
 simular cumplimiento. Ni un reporte aprobado ni la existencia de rutas constituyen
 una calificación. Evidencia, incidentes de entorno y validación humana se registran

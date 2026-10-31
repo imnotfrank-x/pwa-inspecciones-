@@ -23,7 +23,9 @@ jobs:
       - name: Instalar Chromium y dependencias
         run: npx playwright install --with-deps chromium
       - name: Validación, secretos y regresión acumulativa
-        run: npm run verify:all
+        run: npm run verify
+      - name: E2E y estabilidad de recarga offline (sin reintentos)
+        run: npm run test:e2e -- --repeat-each=3
       - name: Conservar reportes
         if: always()
         uses: actions/upload-artifact@v4
