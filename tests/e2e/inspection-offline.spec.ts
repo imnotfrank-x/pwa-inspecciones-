@@ -32,6 +32,19 @@ test("captura offline, recarga, reconecta y no duplica la inspección", async ({
     report();
     window.addEventListener("online", report);
     window.addEventListener("offline", report);
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key: string, value: string) {
+      if (key === "utt-lab-inspections:sync:v1") {
+        const snapshot = JSON.parse(value);
+        console.info("E2E storage write", JSON.stringify({
+          online: navigator.onLine,
+          states: snapshot.inspections.map((item: { syncState: string }) => item.syncState),
+          operations: snapshot.operations.length,
+          stack: new Error().stack,
+        }));
+      }
+      return setItem.call(this, key, value);
+    };
   });
 
   try {
