@@ -4,15 +4,15 @@ import { spawnSync } from "node:child_process";
 
 // Enumeración explícita: el mismo comando funciona en Windows y Linux sin glob del shell.
 const layers = process.argv.slice(2).filter(arg => arg !== "--run");
-if (layers.length === 0 || layers.some(layer => layer !== "unit" && layer !== "integration")) {
-  throw new Error("Indica una o más capas: unit, integration.");
+if (layers.length === 0 || layers.some(layer => !["unit", "integration", "security"].includes(layer))) {
+  throw new Error("Indica una o más capas: unit, integration, security.");
 }
 const root = resolve(import.meta.dirname, "..");
 mkdirSync(resolve(root, "test-results"), { recursive: true });
 
 for (const layer of layers) {
   const directory = resolve(root, "tests", layer);
-  const files = readdirSync(directory, { recursive: true })
+  const files = layer === "security" ? [resolve(root, "tests/security.spec.ts")] : readdirSync(directory, { recursive: true })
     .filter(name => name.endsWith(".test.ts"))
     .sort()
     .map(name => resolve(directory, name));

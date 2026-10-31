@@ -7,6 +7,7 @@ const required = [".nvmrc", "package.json", "package-lock.json", "README.md", "p
 required.push("docs/test-strategy.md", "docs/controlled-defect.md", ".github/workflows/academic-evaluation.yml", "src/components/inspection-capture.tsx", "src/lib/inspections/capture.ts", "src/lib/sync/synthetic-transport.ts", "src/lib/sync/sync-controller.ts", "tests/unit/inspection-validation.test.ts", "tests/unit/queue-idempotency.test.ts", "tests/unit/capture-component.test.ts", "tests/integration/offline-sync.test.ts", "tests/integration/sync-controller.test.ts", "tests/fixtures/inspections.ts", "scripts/run-tests.mjs", "tsconfig.tests.json", "eslint.config.mjs", ".c8rc.json");
 required.push("tests/integration/sync-regressions.test.ts");
 required.push("playwright.config.ts", "tests/e2e/inspection-offline.spec.ts", "tests/e2e/capabilities-fallback.spec.ts");
+required.push("docs/threat-model.md", "src/lib/security/validation.ts", "src/lib/security/secrets.ts", "scripts/check-secrets.mjs", "tests/security.spec.ts");
 const missing = required.filter(file => !existsSync(resolve(root, file)));
 const structureOnly = process.argv.includes("--structure");
 if (structureOnly) {
@@ -19,6 +20,7 @@ mkdirSync(resolve(root, "test-results"), { recursive: true });
 for (const [id, args] of [
   ["lint", ["run", "lint"]],
   ["typecheck", ["run", "typecheck"]],
+  ["secrets", ["run", "security:secrets"]],
   ["test", ["test"]],
   ["coverage", ["run", "test:coverage"]],
   ["build", ["run", "build"]]
@@ -42,7 +44,7 @@ const result = {
   commitSha: git(["rev-parse", "HEAD"]),
   workingTreeClean: gitStatus === null ? null : gitStatus === "",
   runtime: { node: process.version },
-  scope: "Semana 8: estructura, lint, tipos, regresión acumulativa, unitarias, integración, cobertura y build de producción. Los E2E de navegador se ejecutan después mediante npm run verify:all y generan sus propios reportes Playwright/JUnit.",
+  scope: "Semana 9, incremento 1/3 de Francisco: validación, detector de secretos y modelo de amenazas, con regresión previa. CSP/permisos (Javier) e inventario/cierre (Carlos) pendientes. verify:all añade E2E después del build.",
   status: checks.every(c => c.status === "pass") ? "pass" : "fail",
   checks,
   academicReview: { status: "pending", message: "Sin calificación automática. Revisar requisitos, decisión y evidencia por integrante con la rúbrica; existencia no implica calidad.", documents },

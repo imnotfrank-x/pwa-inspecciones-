@@ -1,3 +1,5 @@
+import { hasOnlyKeys, isBoundedText, isIsoTimestamp, MAX_SNAPSHOT_CHARACTERS } from "../security/validation";
+
 export const SYNC_SCHEMA_VERSION = 1 as const;
 export const SYNC_STORAGE_KEY = "utt-lab-inspections:sync:v1";
 
@@ -83,11 +85,7 @@ function assertNonEmptyString(
   field: string,
   maxLength = 500
 ): asserts value is string {
-  if (
-    typeof value !== "string" ||
-    value.trim().length === 0 ||
-    value.length > maxLength
-  ) {
+  if (!isBoundedText(value, maxLength)) {
     throw new SyncSchemaError(
       `${field} debe ser texto no vacío de máximo ${maxLength} caracteres.`
     );
@@ -97,7 +95,7 @@ function assertNonEmptyString(
 function assertIsoDate(value: unknown, field: string): asserts value is string {
   assertNonEmptyString(value, field, 40);
 
-  if (!Number.isFinite(Date.parse(value))) {
+  if (!isIsoTimestamp(value)) {
     throw new SyncSchemaError(`${field} debe ser una fecha ISO válida.`);
   }
 }
@@ -106,12 +104,12 @@ function assertNonNegativeInteger(
   value: unknown,
   field: string
 ): asserts value is number {
-  if (!Number.isInteger(value) || Number(value) < 0) {
+  if (!Number.isSafeInteger(value) || Number(value) < 0) {
     throw new SyncSchemaError(`${field} debe ser un entero mayor o igual a cero.`);
   }
 }
 
-export function assertOfflineInspectionDraft(
+function assertDraftFields(
   value: unknown
 ): asserts value is OfflineInspectionDraft {
   if (!isRecord(value)) {
@@ -137,12 +135,24 @@ export function assertOfflineInspectionDraft(
   assertNonEmptyString(value.summary, "inspection.summary", 1000);
 }
 
+const DRAFT_KEYS = ["id", "location", "inspectedAt", "inspectorAlias", "status", "findings", "summary"];
+
+function assertKeys(value: Record<string, unknown>, allowed: readonly string[]): void {
+  if (!hasOnlyKeys(value, allowed)) throw new SyncSchemaError("El objeto contiene campos no admitidos.");
+}
+
+export function assertOfflineInspectionDraft(value: unknown): asserts value is OfflineInspectionDraft {
+  assertDraftFields(value);
+  assertKeys(value as unknown as Record<string, unknown>, DRAFT_KEYS);
+}
+
 export function assertStoredInspection(
   value: unknown
 ): asserts value is StoredInspection {
-  assertOfflineInspectionDraft(value);
+  assertDraftFields(value);
 
   const inspection = value as unknown as Record<string, unknown>;
+  assertKeys(inspection, [...DRAFT_KEYS, "version", "updatedAt", "syncState", "serverVersion", "serverUpdatedAt"]);
   assertNonNegativeInteger(inspection.version, "inspection.version");
   assertIsoDate(inspection.updatedAt, "inspection.updatedAt");
   if (inspection.serverVersion !== undefined) {
@@ -169,6 +179,7 @@ export function assertSyncOperation(
   if (!isRecord(value)) {
     throw new SyncSchemaError("La operación de sincronización debe ser un objeto.");
   }
+  assertKeys(value, ["id", "idempotencyKey", "entityId", "type", "payload", "baseVersion", "attemptCount", "nextAttemptAt", "state", "createdAt", "updatedAt", "lastError", "conflict"]);
 
   assertNonEmptyString(value.id, "operation.id", 180);
   assertNonEmptyString(value.idempotencyKey, "operation.idempotencyKey", 128);
@@ -217,6 +228,7 @@ export function assertSyncOperation(
     if (!isRecord(value.conflict)) {
       throw new SyncSchemaError("operation.conflict debe ser un objeto.");
     }
+    assertKeys(value.conflict, ["remoteInspection", "detectedAt"]);
     assertStoredInspection(value.conflict.remoteInspection);
     assertIsoDate(value.conflict.detectedAt, "operation.conflict.detectedAt");
     if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value.conflict.detectedAt)) {
@@ -239,6 +251,7 @@ export function assertSyncSnapshot(
   if (!isRecord(value)) {
     throw new SyncSchemaError("El estado local debe ser un objeto.");
   }
+  assertKeys(value, ["schemaVersion", "inspections", "operations"]);
 
   if (value.schemaVersion !== SYNC_SCHEMA_VERSION) {
     throw new SyncSchemaError(
@@ -256,6 +269,9 @@ export function assertSyncSnapshot(
   value.operations.forEach(assertSyncOperation);
 
   const inspectionIds = new Set(value.inspections.map(({ id }) => id));
+  if (value.operations.some(operation => !inspectionIds.has(operation.entityId))) {
+    throw new SyncSchemaError("El estado local contiene operaciones sin inspección.");
+  }
   if (inspectionIds.size !== value.inspections.length) {
     throw new SyncSchemaError("El almacenamiento contiene inspecciones duplicadas.");
   }
@@ -284,6 +300,7 @@ export function parseSyncSnapshot(serialized: string | null): SyncSnapshot {
   if (serialized === null) {
     return createEmptySyncSnapshot();
   }
+  if (serialized.length > MAX_SNAPSHOT_CHARACTERS) throw new SyncSchemaError("El estado local supera el límite de lectura.");
 
   let parsed: unknown;
   try {
@@ -308,7 +325,9 @@ export class JsonSyncStorage implements SyncStorage {
 
   async save(snapshot: SyncSnapshot): Promise<void> {
     assertSyncSnapshot(snapshot);
-    this.storage.setItem(this.key, JSON.stringify(snapshot));
+    const serialized = JSON.stringify(snapshot);
+    if (serialized.length > MAX_SNAPSHOT_CHARACTERS) throw new SyncSchemaError("El estado local supera el límite de escritura.");
+    this.storage.setItem(this.key, serialized);
   }
 
   async clear(): Promise<void> {

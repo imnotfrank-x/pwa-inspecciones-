@@ -1,4 +1,4 @@
-name: Semana 8 - Verificación completa
+name: Semana 9 - Francisco incremento 1 de 3
 
 on:
   push:
@@ -22,13 +22,13 @@ jobs:
         run: npm ci
       - name: Instalar Chromium y dependencias
         run: npx playwright install --with-deps chromium
-      - name: Verificación completa de Semana 8
+      - name: Validación, secretos y regresión acumulativa
         run: npm run verify:all
       - name: Conservar reportes
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: w08-final-${{ github.sha }}
+          name: w09-francisco-${{ github.sha }}
           if-no-files-found: warn
           path: |
             reports/verification.json
