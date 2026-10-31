@@ -63,7 +63,7 @@ export function InspectionCapture({
           target: typeof window !== "undefined" ? window : undefined,
           isOnline: () => {
             const connected = typeof navigator !== "undefined" ? navigator.onLine : true;
-            console.info("W09 connectivity diagnostic", connected, window.location.href);
+            console.info("W09 connectivity diagnostic", connected);
             return connected;
           }
         });
