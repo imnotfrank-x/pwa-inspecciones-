@@ -25,6 +25,14 @@ async function readStoredSnapshot(page: import("@playwright/test").Page) {
 
 test("captura offline, recarga, reconecta y no duplica la inspección", async ({ context }) => {
   const page = await context.newPage();
+  // Registrar la señal nativa sin sustituirla: permite distinguir un fallo de
+  // emulación de red de un envío indebido de la aplicación después de recargar.
+  await page.addInitScript(() => {
+    const report = () => console.info("E2E connectivity", navigator.onLine);
+    report();
+    window.addEventListener("online", report);
+    window.addEventListener("offline", report);
+  });
 
   try {
     await page.goto("/inspecciones");
@@ -40,6 +48,7 @@ test("captura offline, recarga, reconecta y no duplica la inspección", async ({
     await expect(page.getByLabel("Laboratorio sintético")).toBeEnabled();
 
     await context.setOffline(true);
+    expect(await page.evaluate(() => navigator.onLine)).toBe(false);
     await expect(page.locator('[role="status"]').filter({ hasText: /^Sin conexión$/ })).toBeVisible();
 
     await page.getByLabel("Laboratorio sintético").fill("Laboratorio E2E Alfa");
@@ -66,12 +75,15 @@ test("captura offline, recarga, reconecta y no duplica la inspección", async ({
     expect(beforeReload.operations[0].entityId).toBe(inspectionId);
 
     await page.reload({ waitUntil: "domcontentloaded" });
+    expect(await page.evaluate(() => navigator.onLine)).toBe(false);
     await expect(page.getByRole("heading", { name: "Registrar inspección" })).toBeVisible();
     const recoveredRecord = page.locator(`[data-inspection-id="${inspectionId}"]`);
     await expect(recoveredRecord).toHaveCount(1);
     await expect(recoveredRecord).toContainText("Laboratorio E2E Alfa");
     await expect(recoveredRecord).toContainText("Inspector E2E");
     await expect(recoveredRecord).toContainText("Hallazgo sintético para prueba offline");
+    await expect(recoveredRecord).toContainText("Pendiente de sincronización");
+    await expect(page.getByRole("button", { name: "Sincronizar pendientes" })).toBeDisabled();
 
     const afterReload = await readStoredSnapshot(page);
     expect(afterReload.inspections.map(({ id }) => id)).toEqual([inspectionId]);
