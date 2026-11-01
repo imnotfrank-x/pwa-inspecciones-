@@ -999,3 +999,72 @@ a coincidencias; el diagnóstico está en el modelo de amenazas. El workflow ofi
 W09 y los demás entregables se integrarán al cierre. La revisión personal de Francisco
 sigue pendiente y no se atribuye a las ejecuciones de Codex. El resultado remoto debe
 comprobarse en Actions para el SHA exacto del pase a Javier.
+
+## Semana 9 — incremento de Javier (CSP, cabeceras HTTP y permisos mínimos)
+
+Base obligatoria: `ecf5dec2b90bb0d7fdcfabc18190825aa40cea39` (`w09/francisco-seguridad`).
+Rama de trabajo: `w09/javier-csp-headers`. SHA técnico de implementación:
+[`8c40d8e1c09abff2ca9e1fa67a79d959428f37ca`](https://github.com/imnotfrank-x/pwa-inspecciones-/commit/8c40d8e1c09abff2ca9e1fa67a79d959428f37ca).
+Este es el incremento 2/3; el inventario de privacidad (`docs/privacy-data-inventory.md`),
+`robots.txt`, el workflow oficial de Semana 9 y el cierre corresponden a Carlos.
+
+### Política aplicada en `next.config.mjs` y `src/lib/security/headers.ts`
+
+Se configuró `headers()` en `next.config.mjs` con `source: "/:path*"` para aplicar en todas
+las rutas (páginas CSR/SSR, `/sw.js`, `/manifest.webmanifest` y `/offline.html`) las
+siguientes cabeceras:
+
+- **`Content-Security-Policy`:**
+  - `default-src 'self'`
+  - `script-src 'self' 'unsafe-inline'` en producción (`next start`); en desarrollo (`NODE_ENV === "development"`) añade `'unsafe-eval'` solo para Fast Refresh.
+  - `style-src 'self' 'unsafe-inline'`
+  - `img-src 'self' data: blob:`
+  - `font-src 'self'`
+  - `connect-src 'self'`
+  - `worker-src 'self'`
+  - `manifest-src 'self'`
+  - `object-src 'none'`
+  - `base-uri 'self'`
+  - `form-action 'self'`
+  - `frame-ancestors 'none'`
+- **`X-Content-Type-Options`:** `nosniff`
+- **`Referrer-Policy`:** `strict-origin-when-cross-origin`
+- **`X-Frame-Options`:** `DENY` (defensa contra framing junto con `frame-ancestors 'none'`)
+- **`Permissions-Policy`:** `camera=(self), geolocation=(self), microphone=(), payment=(), usb=()`
+  - Permite cámara y geolocalización únicamente para el mismo origen (`(self)`).
+  - Deshabilita capacidades innecesarias (`microphone=()`, `payment=()`, `usb=()`).
+  - No incluye directivas inexistentes para notificaciones (gobernadas por la Notification / Permissions API del navegador).
+
+### Comandos ejecutados y resultados observados
+
+Con Node.js `v20.19.0` y npm `10.8.2`:
+
+```bash
+npm ci
+npx playwright install chromium
+npm run lint
+npm run typecheck
+npm test
+npm run test:e2e
+make verify
+npm run test -- --run
+& 'C:\Program Files\Git\bin\bash.exe' public-tests/check.sh
+git diff --check
+```
+
+Resultados reales en este entorno:
+
+- `npm ci`: código 0 (173 paquetes añadidos, 174 auditados).
+- `npm run lint` y `npm run typecheck`: código 0, sin errores ni advertencias.
+- `npm test` y `npm run test -- --run`: código 0; **10 suites heredadas en `PASS`**, **40/40 unitarias**, **27/27 de integración** y **21/21 de seguridad** (`tests/security.spec.ts` añade 3 casos para directivas CSP, `Permissions-Policy` y `next.config.mjs`).
+- `npm run security:secrets`: código 0; `98` archivos analizados, `0` hallazgos (`pass`).
+- Cobertura (`unit` + `integration` + `security`): **66.68%** de líneas/sentencias (`2218/3326`), **84.62%** de ramas (`567/670`) y **70.30%** de funciones (`187/266`), con `src/lib/security/headers.ts` en **100%** de líneas y funciones (`93.33%` de ramas) y manteniendo los módulos no ejecutados en el denominador.
+- `npm run test:e2e` (y `npm run test:e2e -- --repeat-each=3`): código 0; **3/3 escenarios E2E aprobados** (`9/9` en repetición triple sin reintentos). `tests/e2e/security-headers.spec.ts` inspecciona las cabeceras HTTP reales de `/`, `/inspecciones`, `/inspecciones/inspection-001`, `/sw.js`, `/manifest.webmanifest` y `/offline.html` sobre `next start`, comprueba captura, detalle SSR, cámara, ubicación, notificaciones y Service Worker sin violaciones CSP, verifica que texto con `<script>`/`<img onerror>` no se ejecute (T04) y confirma el evento `securitypolicyviolation` al intentar cargar un script externo (T06).
+- `make verify` / `npm run verify`: código 0 (`Verificación técnica: pass`, `reports/verification.json`).
+- Check público con Git Bash: código 0 (`PUBLIC_OK`); `git diff --check`: limpio.
+
+### Límites del incremento 2/3
+
+- `script-src` y `style-src` conservan `'unsafe-inline'` en producción porque Next.js 14 inserta scripts inline de hidratación en páginas prerenderizadas (`/inspecciones`) que el Service Worker sirve desde caché en modo offline sin servidor que emita nonces por petición; el escape de React sigue siendo el control primario contra inyección en datos de usuario.
+- La CSP y las cabeceras reducen la superficie de ejecución externa, framing y permisos de navegador, pero no cifran `localStorage` ni aíslan frente a código malicioso que ya se ejecute en el mismo origen.
+- Se mantienen abiertos los hallazgos de auditoría de dependencias registrados en [docs/threat-model.md](docs/threat-model.md) y quedan pendientes para Carlos `docs/privacy-data-inventory.md`, `robots.txt`, el workflow oficial de Semana 9 y el cierre.
