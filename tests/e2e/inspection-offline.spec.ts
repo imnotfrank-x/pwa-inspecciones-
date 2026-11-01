@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { CONNECTIVITY_SESSION_KEY } from "../../src/lib/sync/connectivity";
 
 const STORAGE_KEY = "utt-lab-inspections:sync:v1";
 
@@ -41,6 +42,7 @@ test("captura offline, recarga, reconecta y no duplica la inspección", async ({
 
     await context.setOffline(true);
     expect(await page.evaluate(() => navigator.onLine)).toBe(false);
+    expect(await page.evaluate(key => sessionStorage.getItem(key), CONNECTIVITY_SESSION_KEY)).toBe("1");
     await expect(page.locator('[role="status"]').filter({ hasText: /^Sin conexión$/ })).toBeVisible();
 
     await page.getByLabel("Laboratorio sintético").fill("Laboratorio E2E Alfa");
@@ -68,6 +70,7 @@ test("captura offline, recarga, reconecta y no duplica la inspección", async ({
 
     await page.reload({ waitUntil: "domcontentloaded" });
     expect(await page.evaluate(() => navigator.onLine)).toBe(false);
+    expect(await page.evaluate(key => sessionStorage.getItem(key), CONNECTIVITY_SESSION_KEY)).toBe("1");
     await expect(page.getByRole("heading", { name: "Registrar inspección" })).toBeVisible();
     const recoveredRecord = page.locator(`[data-inspection-id="${inspectionId}"]`);
     await expect(recoveredRecord).toHaveCount(1);
@@ -82,6 +85,7 @@ test("captura offline, recarga, reconecta y no duplica la inspección", async ({
     expect(afterReload.operations).toHaveLength(1);
 
     await context.setOffline(false);
+    await expect.poll(() => page.evaluate(key => sessionStorage.getItem(key), CONNECTIVITY_SESSION_KEY)).toBeNull();
     await expect(recoveredRecord).toContainText("Sincronizada");
     await page.getByRole("button", { name: "Sincronizar pendientes" }).click();
     await expect(recoveredRecord).toHaveCount(1);

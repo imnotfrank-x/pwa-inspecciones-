@@ -15,7 +15,6 @@ export type ConnectivityGateOptions = {
   target: ConnectivityTarget;
   readOnline: () => boolean;
   storage?: ConnectivityStorage;
-  probeOnline?: () => Promise<boolean>;
 };
 
 export function createConnectivityGate(options: ConnectivityGateOptions) {
@@ -43,22 +42,12 @@ export function createConnectivityGate(options: ConnectivityGateOptions) {
     }
   };
 
+  if (!options.readOnline()) rememberOffline();
+
   options.target.addEventListener("offline", rememberOffline);
   options.target.addEventListener("online", rememberOnline);
 
   return {
-    initialize: async () => {
-      if (!options.readOnline()) {
-        rememberOffline();
-        return;
-      }
-      if (!readRememberedOffline() || !options.probeOnline) return;
-      try {
-        if (await options.probeOnline() && options.readOnline()) rememberOnline();
-      } catch {
-        // El marcador se conserva: no se envía hasta comprobar red o recibir online.
-      }
-    },
     isOnline: () => options.readOnline() && !readRememberedOffline(),
     dispose: () => {
       options.target.removeEventListener("offline", rememberOffline);
