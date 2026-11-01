@@ -142,6 +142,29 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
     gate.dispose();
     assert.equal(target.listenerCount("online"), 0);
     assert.equal(target.listenerCount("offline"), 0);
+    assert.equal(target.listenerCount("pagehide"), 0);
+  });
+
+  it("pagehide cierra el gate anterior antes de que pueda borrar el marcador compartido", () => {
+    const target = new FakeConnectivityTarget();
+    const entries = new Map<string, string>([[CONNECTIVITY_SESSION_KEY, "1"]]);
+    const gate = createConnectivityGate({
+      target,
+      readOnline: () => true,
+      storage: {
+        getItem: key => entries.get(key) ?? null,
+        setItem: (key, value) => { entries.set(key, value); },
+        removeItem: key => { entries.delete(key); }
+      }
+    });
+
+    target.emit("pagehide");
+    target.emit("online");
+    assert.equal(entries.get(CONNECTIVITY_SESSION_KEY), "1");
+    assert.equal(gate.isOnline(), false);
+    assert.equal(target.listenerCount("online"), 0);
+    assert.equal(target.listenerCount("offline"), 0);
+    assert.equal(target.listenerCount("pagehide"), 0);
   });
 
   it("guarda sin conexión sin enviar y sincroniza una sola vez al recibir el evento online", async () => {

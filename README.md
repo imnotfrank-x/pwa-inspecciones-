@@ -978,7 +978,8 @@ offline y solo lo limpia ante un evento online real. El marcador pertenece a la 
 del tab; cerrar el tab crea una sesión nueva. Si la red cambia mientras la app no está
 abierta en ese tab, puede requerir un nuevo evento online o abrir la app en otro tab. El
 gate ignora un `online` transitorio de recarga hasta que el documento actual haya
-observado `offline`; así no interpreta el cambio interno del navegador como reconexión. El
+observado `offline`; además, el gate anterior se cierra en `pagehide` para que no pueda
+borrar el marcador compartido durante la navegación. El
 controlador también escucha `pagehide`, se cierra y elimina sus listeners. Las regresiones
 de integración y E2E comprueban ambos límites y la conservación de la cola pendiente.
 Se retiró todo el registro diagnóstico temporal. Para detectar recurrencias, CI ejecuta

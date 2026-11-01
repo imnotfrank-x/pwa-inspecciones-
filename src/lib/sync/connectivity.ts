@@ -48,16 +48,23 @@ export function createConnectivityGate(options: ConnectivityGateOptions) {
     }
   };
 
+  let disposed = false;
+  const dispose = (): void => {
+    if (disposed) return;
+    disposed = true;
+    options.target.removeEventListener("offline", rememberOffline);
+    options.target.removeEventListener("online", rememberOnline);
+    options.target.removeEventListener("pagehide", dispose);
+  };
+
   if (!options.readOnline()) rememberOffline();
 
   options.target.addEventListener("offline", rememberOffline);
   options.target.addEventListener("online", rememberOnline);
+  options.target.addEventListener("pagehide", dispose);
 
   return {
     isOnline: () => options.readOnline() && !readRememberedOffline(),
-    dispose: () => {
-      options.target.removeEventListener("offline", rememberOffline);
-      options.target.removeEventListener("online", rememberOnline);
-    }
+    dispose
   };
 }
