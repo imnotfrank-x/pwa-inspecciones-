@@ -119,7 +119,7 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
   it("una recarga conserva offline hasta recibir un evento online real", () => {
     const target = new FakeConnectivityTarget();
     const entries = new Map<string, string>([[CONNECTIVITY_SESSION_KEY, "1"]]);
-    const online = true;
+    let online = true;
     const gate = createConnectivityGate({
       target,
       readOnline: () => online,
@@ -131,6 +131,11 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
     });
 
     assert.equal(gate.isOnline(), false, "una lectura transitoria true no debe vaciar la cola");
+    target.emit("online");
+    assert.equal(gate.isOnline(), false, "online sin haber observado offline es transitorio");
+    online = false;
+    target.emit("offline");
+    online = true;
     target.emit("online");
     assert.equal(gate.isOnline(), true);
     assert.equal(entries.has(CONNECTIVITY_SESSION_KEY), false);

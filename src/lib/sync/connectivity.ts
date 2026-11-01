@@ -19,6 +19,7 @@ export type ConnectivityGateOptions = {
 
 export function createConnectivityGate(options: ConnectivityGateOptions) {
   let knownOffline = false;
+  let observedOfflineInDocument = !options.readOnline();
 
   const readRememberedOffline = (): boolean => {
     try {
@@ -30,12 +31,17 @@ export function createConnectivityGate(options: ConnectivityGateOptions) {
 
   const rememberOffline = (): void => {
     knownOffline = true;
+    observedOfflineInDocument = true;
     try { options.storage?.setItem(CONNECTIVITY_SESSION_KEY, "1"); } catch {
       // La señal en memoria sigue protegiendo la página actual.
     }
   };
 
   const rememberOnline = (): void => {
+    // Chromium puede emitir online durante una recarga que todavía está offline.
+    // Un marcador heredado solo se libera tras observar offline en este documento.
+    if (readRememberedOffline() && !observedOfflineInDocument) return;
+    if (!options.readOnline()) return;
     knownOffline = false;
     try { options.storage?.removeItem(CONNECTIVITY_SESSION_KEY); } catch {
       // navigator.onLine seguirá siendo la señal disponible en esta página.

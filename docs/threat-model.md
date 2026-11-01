@@ -87,6 +87,7 @@ La recarga offline conserva además la última señal `offline` en `sessionStora
 que una lectura transitoria de `navigator.onLine` no vacíe la cola. El marcador solo
 vive en la sesión del tab y un evento online lo elimina. Si la red cambia mientras
 la app no está abierta, puede requerir un evento nuevo o iniciar otra sesión del tab.
+Un evento online de recarga se ignora hasta observar offline en el documento actual.
 El CLI se prueba como caja negra sin instrumentación V8 del subproceso: el cargador
 tsx genera sourcemaps `data:` que c8 no puede normalizar. La lógica del detector se
 ejecuta y mide en el proceso principal; no se excluyen sus módulos del denominador.
