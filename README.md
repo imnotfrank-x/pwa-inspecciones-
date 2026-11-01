@@ -951,13 +951,13 @@ La instalación limpia terminó correctamente con `npm ci --prefer-offline --no-
 en un comando explícito. `make verify` terminó con `Verificación técnica: pass`:
 estructura, lint, tipos, detector, pruebas, cobertura y build aprobados.
 
-- Diez suites heredadas en PASS, 40/40 unitarias, 25/25 de integración y 18/18 de seguridad.
+- Diez suites heredadas en PASS, 40/40 unitarias, 27/27 de integración y 18/18 de seguridad.
 - `npm run test -- --run`: aprobado; check público acumulativo: `PUBLIC_OK`.
-- Detector: 95 archivos analizados sin coincidencias de sus patrones conocidos.
-- Cobertura de unitarias + integración + seguridad: líneas/sentencias 64.53%
-  (2002/3102), ramas 84.97% (509/599), funciones 67.35% (163/242).
+- Detector: 96 archivos analizados sin coincidencias de sus patrones conocidos.
+- Cobertura de unitarias + integración + seguridad: líneas/sentencias 65.52%
+  (2106/3214), ramas 84.21% (539/640), funciones 68.40% (171/250).
 - `git diff --check`: limpio. E2E locales de Semana 9 no ejecutados; los dos casos
-  existentes se ejecutan en Actions después de verify sobre el SHA publicado.
+  existentes aprobaron tres veces cada uno en Actions (6/6, sin reintentos).
 
 Incidentes resueltos: faltaban dependencias de Playwright y hubo fallos DNS,
 `EIDLETIMEOUT`, `EPERM` y `ENOTCACHED`. Tras recuperar conectividad se reinstaló
