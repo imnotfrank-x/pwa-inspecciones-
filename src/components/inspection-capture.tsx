@@ -64,7 +64,10 @@ export function InspectionCapture({
         const connectivity = createConnectivityGate({
           target: window,
           storage: sessionStorageAdapter,
-          readOnline: () => (typeof navigator !== "undefined" ? navigator.onLine : true)
+          readOnline: () => (typeof navigator !== "undefined" ? navigator.onLine : true),
+          onConfirmedOnline: () => {
+            void instance?.syncPending().catch(() => undefined);
+          }
         });
         disposeConnectivity = connectivity.dispose;
         instance = createSyncController({

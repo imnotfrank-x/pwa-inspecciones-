@@ -15,11 +15,19 @@ export type ConnectivityGateOptions = {
   target: ConnectivityTarget;
   readOnline: () => boolean;
   storage?: ConnectivityStorage;
+  onlineStabilityMs?: number;
+  onConfirmedOnline?: () => void;
 };
 
 export function createConnectivityGate(options: ConnectivityGateOptions) {
   let knownOffline = false;
   let observedOfflineInDocument = !options.readOnline();
+  let pendingOnline: ReturnType<typeof setTimeout> | undefined;
+
+  const cancelOnlineConfirmation = (): void => {
+    if (pendingOnline !== undefined) clearTimeout(pendingOnline);
+    pendingOnline = undefined;
+  };
 
   const readRememberedOffline = (): boolean => {
     try {
@@ -30,6 +38,7 @@ export function createConnectivityGate(options: ConnectivityGateOptions) {
   };
 
   const rememberOffline = (): void => {
+    cancelOnlineConfirmation();
     knownOffline = true;
     observedOfflineInDocument = true;
     try { options.storage?.setItem(CONNECTIVITY_SESSION_KEY, "1"); } catch {
@@ -42,16 +51,25 @@ export function createConnectivityGate(options: ConnectivityGateOptions) {
     // Un marcador heredado solo se libera tras observar offline en este documento.
     if (readRememberedOffline() && !observedOfflineInDocument) return;
     if (!options.readOnline()) return;
-    knownOffline = false;
-    try { options.storage?.removeItem(CONNECTIVITY_SESSION_KEY); } catch {
-      // navigator.onLine seguirá siendo la señal disponible en esta página.
-    }
+    cancelOnlineConfirmation();
+    const confirm = () => {
+      pendingOnline = undefined;
+      if (disposed || !options.readOnline()) return;
+      knownOffline = false;
+      try { options.storage?.removeItem(CONNECTIVITY_SESSION_KEY); } catch {
+        // navigator.onLine seguirá siendo la señal disponible en esta página.
+      }
+      options.onConfirmedOnline?.();
+    };
+    if (!readRememberedOffline()) confirm();
+    else pendingOnline = setTimeout(confirm, options.onlineStabilityMs ?? 750);
   };
 
   let disposed = false;
   const dispose = (): void => {
     if (disposed) return;
     disposed = true;
+    cancelOnlineConfirmation();
     options.target.removeEventListener("offline", rememberOffline);
     options.target.removeEventListener("online", rememberOnline);
     options.target.removeEventListener("pagehide", dispose);

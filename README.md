@@ -977,9 +977,10 @@ recarga todavía offline. `connectivity.ts` conserva en `sessionStorage` el últ
 offline y solo lo limpia ante un evento online real. El marcador pertenece a la sesión
 del tab; cerrar el tab crea una sesión nueva. Si la red cambia mientras la app no está
 abierta en ese tab, puede requerir un nuevo evento online o abrir la app en otro tab. El
-gate ignora un `online` transitorio de recarga hasta que el documento actual haya
-observado `offline`; además, el gate anterior se cierra en `pagehide` para que no pueda
-borrar el marcador compartido durante la navegación. El
+gate exige que un `online` permanezca estable 750 ms; un `offline` o `pagehide` cancela
+la confirmación. Además, el gate anterior se cierra en `pagehide` para que no pueda
+borrar el marcador compartido durante la navegación. Al confirmar, vuelve a iniciar
+la sincronización pendiente. El
 controlador también escucha `pagehide`, se cierra y elimina sus listeners. Las regresiones
 de integración y E2E comprueban ambos límites y la conservación de la cola pendiente.
 Se retiró todo el registro diagnóstico temporal. Para detectar recurrencias, CI ejecuta

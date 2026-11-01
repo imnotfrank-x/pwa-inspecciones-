@@ -116,13 +116,14 @@ function createDeferred<T = void>() {
 }
 
 describe("Integración del controlador de sincronización y la interfaz", () => {
-  it("una recarga conserva offline hasta recibir un evento online real", () => {
+  it("una recarga ignora online transitorio y acepta una reconexión estable", async () => {
     const target = new FakeConnectivityTarget();
     const entries = new Map<string, string>([[CONNECTIVITY_SESSION_KEY, "1"]]);
     let online = true;
     const gate = createConnectivityGate({
       target,
       readOnline: () => online,
+      onlineStabilityMs: 0,
       storage: {
         getItem: key => entries.get(key) ?? null,
         setItem: (key, value) => { entries.set(key, value); },
@@ -132,11 +133,13 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
 
     assert.equal(gate.isOnline(), false, "una lectura transitoria true no debe vaciar la cola");
     target.emit("online");
-    assert.equal(gate.isOnline(), false, "online sin haber observado offline es transitorio");
     online = false;
     target.emit("offline");
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(gate.isOnline(), false, "offline debe cancelar la confirmación transitoria");
     online = true;
     target.emit("online");
+    await new Promise(resolve => setTimeout(resolve, 0));
     assert.equal(gate.isOnline(), true);
     assert.equal(entries.has(CONNECTIVITY_SESSION_KEY), false);
     gate.dispose();
