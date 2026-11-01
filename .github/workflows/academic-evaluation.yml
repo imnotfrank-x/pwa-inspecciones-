@@ -1,4 +1,4 @@
-name: Semana 9 - Francisco incremento 1 de 3
+name: Semana 9 - Javier incremento 2 de 3
 
 on:
   push:
@@ -30,7 +30,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: w09-francisco-${{ github.sha }}
+          name: w09-javier-${{ github.sha }}
           if-no-files-found: warn
           path: |
             reports/verification.json

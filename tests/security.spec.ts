@@ -3,8 +3,18 @@ import { describe, it } from "node:test";
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, sep } from "node:path";
+import { pathToFileURL } from "node:url";
 import { execFileSync, spawnSync } from "node:child_process";
 import { inspectSecretText } from "../src/lib/security/secrets";
+import {
+  PERMISSIONS_POLICY_DIRECTIVES,
+  PERMISSIONS_POLICY_VALUE,
+  REQUIRED_CSP_DIRECTIVES,
+  buildContentSecurityPolicy,
+  buildSecurityHeaders,
+  parseCspDirectives,
+  parsePermissionsPolicy
+} from "../src/lib/security/headers";
 import { MAX_SNAPSHOT_CHARACTERS } from "../src/lib/security/validation";
 import { assertOfflineInspectionDraft, createEmptySyncSnapshot, JsonSyncStorage, parseSyncSnapshot, SyncSchemaError } from "../src/lib/storage/schema";
 import { createSyncQueue } from "../src/lib/sync/queue";
@@ -104,5 +114,70 @@ describe("Seguridad W09: detector de secretos sin revelar valores", () => {
       assert.ok(root.startsWith(resolve(tmpdir()) + sep) && root.includes("w09-secret-test-"));
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("Seguridad W09: CSP, cabeceras HTTP y permisos mínimos", () => {
+  it("incluye todas las directivas CSP requeridas y separa modo producción de desarrollo", () => {
+    const productionCsp = buildContentSecurityPolicy({ isDevelopment: false });
+    const developmentCsp = buildContentSecurityPolicy({ isDevelopment: true });
+    const prodDirectives = parseCspDirectives(productionCsp);
+    const devDirectives = parseCspDirectives(developmentCsp);
+
+    for (const directive of REQUIRED_CSP_DIRECTIVES) {
+      assert.ok(directive in prodDirectives, `Falta directiva CSP: ${directive}`);
+    }
+
+    assert.deepEqual(prodDirectives["default-src"], ["'self'"]);
+    assert.deepEqual(prodDirectives["script-src"], ["'self'", "'unsafe-inline'"]);
+    assert.equal(prodDirectives["script-src"].includes("'unsafe-eval'"), false);
+    assert.equal(devDirectives["script-src"].includes("'unsafe-eval'"), true);
+    assert.deepEqual(prodDirectives["style-src"], ["'self'", "'unsafe-inline'"]);
+    assert.deepEqual(prodDirectives["img-src"], ["'self'", "data:", "blob:"]);
+    assert.deepEqual(prodDirectives["connect-src"], ["'self'"]);
+    assert.deepEqual(prodDirectives["worker-src"], ["'self'"]);
+    assert.deepEqual(prodDirectives["manifest-src"], ["'self'"]);
+    assert.deepEqual(prodDirectives["object-src"], ["'none'"]);
+    assert.deepEqual(prodDirectives["base-uri"], ["'self'"]);
+    assert.deepEqual(prodDirectives["form-action"], ["'self'"]);
+    assert.deepEqual(prodDirectives["frame-ancestors"], ["'none'"]);
+  });
+
+  it("restringe Permissions-Policy a mismo origen en cámara/geolocalización y deshabilita micrófono, pago y USB sin directivas inventadas de notificaciones", () => {
+    const parsed = parsePermissionsPolicy(`${PERMISSIONS_POLICY_VALUE}, , sin_valor`);
+    assert.deepEqual(parsed, PERMISSIONS_POLICY_DIRECTIVES);
+    assert.equal(parsed.camera, "(self)");
+    assert.equal(parsed.geolocation, "(self)");
+    assert.equal(parsed.microphone, "()");
+    assert.equal(parsed.payment, "()");
+    assert.equal(parsed.usb, "()");
+    assert.equal("notifications" in parsed, false);
+    assert.equal("push" in parsed, false);
+    assert.deepEqual(parseCspDirectives("default-src 'self'; ;"), { "default-src": ["'self'"] });
+    assert.equal(buildSecurityHeaders().length, 5);
+  });
+
+  it("configura en next.config.mjs las cinco cabeceras de seguridad aplicables a todas las rutas", async () => {
+    const configUrl = pathToFileURL(resolve(import.meta.dirname, "../next.config.mjs")).href;
+    const loaded = (await import(configUrl)) as {
+      default: {
+        headers?: () => Promise<Array<{ source: string; headers: Array<{ key: string; value: string }> }>>;
+      };
+    };
+
+    assert.equal(typeof loaded.default.headers, "function");
+    const routeRules = await loaded.default.headers!();
+    assert.equal(routeRules.length, 1);
+    assert.equal(routeRules[0].source, "/:path*");
+
+    const expected = buildSecurityHeaders({ isDevelopment: process.env.NODE_ENV === "development" });
+    assert.deepEqual(routeRules[0].headers, expected);
+
+    const byKey = Object.fromEntries(routeRules[0].headers.map(({ key, value }) => [key, value]));
+    assert.equal(byKey["X-Content-Type-Options"], "nosniff");
+    assert.equal(byKey["Referrer-Policy"], "strict-origin-when-cross-origin");
+    assert.equal(byKey["X-Frame-Options"], "DENY");
+    assert.equal(byKey["Permissions-Policy"], PERMISSIONS_POLICY_VALUE);
+    assert.ok(byKey["Content-Security-Policy"].includes("frame-ancestors 'none'"));
   });
 });

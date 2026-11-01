@@ -6,8 +6,8 @@ const root = resolve(import.meta.dirname, "..");
 const required = [".nvmrc", "package.json", "package-lock.json", "README.md", "public/manifest.webmanifest", "public/icons/icon-192.png", "public/icons/icon-512.png", "src/app/layout.tsx", "src/app/page.tsx", "src/app/loading.tsx", "src/app/error.tsx", "src/app/globals.css", "src/components/app-shell.tsx", "src/components/inspection-list.tsx", "src/lib/data/inspections.ts", "docs/requirements.md", "docs/decision-record.md", "tests/starter.spec.mjs", "tests/manifest.spec.ts", "tests/inspection-states.spec.ts", "tests/app-shell.spec.ts", "evidence/individual.md", "src/app/inspecciones/page.tsx", "src/app/inspecciones/[id]/page.tsx", "src/app/inspecciones/[id]/loading.tsx", "src/app/inspecciones/[id]/error.tsx", "src/app/inspecciones/[id]/not-found.tsx", "src/components/loading-state.tsx", "src/lib/data/inspection-detail.ts", "docs/rendering-decision.md", "tests/rendering.spec.ts", ".github/workflows/week-04-w04-csr-ssr.yml", "src/lib/storage/schema.ts", "src/lib/sync/queue.ts", "tests/sync.spec.ts", "src/lib/sync/conflict-policy.ts", "docs/sync-policy.md", ".github/workflows/week-05-w05-sync-data.yml", "src/lib/device/camera.ts", "src/lib/device/geolocation.ts", "src/lib/notifications/client.ts", "src/components/inspection-capabilities.tsx", "docs/capabilities.md", "tests/capabilities.spec.ts", ".github/workflows/week-06-w06-device-push.yml"];
 required.push("docs/test-strategy.md", "docs/controlled-defect.md", ".github/workflows/academic-evaluation.yml", "src/components/inspection-capture.tsx", "src/lib/inspections/capture.ts", "src/lib/sync/synthetic-transport.ts", "src/lib/sync/sync-controller.ts", "tests/unit/inspection-validation.test.ts", "tests/unit/queue-idempotency.test.ts", "tests/unit/capture-component.test.ts", "tests/integration/offline-sync.test.ts", "tests/integration/sync-controller.test.ts", "tests/fixtures/inspections.ts", "scripts/run-tests.mjs", "tsconfig.tests.json", "eslint.config.mjs", ".c8rc.json");
 required.push("tests/integration/sync-regressions.test.ts");
-required.push("playwright.config.ts", "tests/e2e/inspection-offline.spec.ts", "tests/e2e/capabilities-fallback.spec.ts");
-required.push("docs/threat-model.md", "src/lib/security/validation.ts", "src/lib/security/secrets.ts", "scripts/check-secrets.mjs", "tests/security.spec.ts");
+required.push("playwright.config.ts", "tests/e2e/inspection-offline.spec.ts", "tests/e2e/capabilities-fallback.spec.ts", "tests/e2e/security-headers.spec.ts");
+required.push("docs/threat-model.md", "src/lib/security/validation.ts", "src/lib/security/secrets.ts", "src/lib/security/headers.ts", "scripts/check-secrets.mjs", "tests/security.spec.ts");
 const missing = required.filter(file => !existsSync(resolve(root, file)));
 const structureOnly = process.argv.includes("--structure");
 if (structureOnly) {
@@ -36,7 +36,7 @@ const git = args => {
   const r = spawnSync("git", args, { cwd: root, encoding: "utf8" });
   return r.status === 0 ? r.stdout.trim() : null;
 };
-const documents = ["docs/requirements.md", "docs/decision-record.md", "docs/cache-strategy.md", "docs/rendering-decision.md", "docs/test-strategy.md", "docs/controlled-defect.md", "evidence/individual.md", "README.md"].map(file => ({ file, content: existsSync(resolve(root, file)) ? readFileSync(resolve(root, file), "utf8") : null }));
+const documents = ["docs/requirements.md", "docs/decision-record.md", "docs/cache-strategy.md", "docs/rendering-decision.md", "docs/test-strategy.md", "docs/controlled-defect.md", "docs/threat-model.md", "evidence/individual.md", "README.md"].map(file => ({ file, content: existsSync(resolve(root, file)) ? readFileSync(resolve(root, file), "utf8") : null }));
 const gitStatus = git(["status", "--porcelain"]);
 const result = {
   schemaVersion: 2,
@@ -44,7 +44,7 @@ const result = {
   commitSha: git(["rev-parse", "HEAD"]),
   workingTreeClean: gitStatus === null ? null : gitStatus === "",
   runtime: { node: process.version },
-  scope: "Semana 9, incremento 1/3 de Francisco: validación, detector de secretos y modelo de amenazas, con regresión previa. CSP/permisos (Javier) e inventario/cierre (Carlos) pendientes. verify:all añade E2E después del build.",
+  scope: "Semana 9, incremento 2/3 de Javier: validación, detector de secretos, modelo de amenazas, CSP, cabeceras HTTP y Permissions-Policy con E2E sobre respuestas de producción. Inventario/privacidad/cierre (Carlos) pendientes. verify:all añade E2E después del build.",
   status: checks.every(c => c.status === "pass") ? "pass" : "fail",
   checks,
   academicReview: { status: "pending", message: "Sin calificación automática. Revisar requisitos, decisión y evidencia por integrante con la rúbrica; existencia no implica calidad.", documents },

@@ -2,10 +2,10 @@
 
 ## Estado y alcance
 
-Incremento 1/3 de Francisco sobre Semana 8 (`91f3fc4da626ad150311c44e7c22a1186f5d221c`).
+Incremento 1/3 de Francisco sobre Semana 8 (`91f3fc4da626ad150311c44e7c22a1186f5d221c`) e incremento 2/3 de Javier sobre `ecf5dec2b90bb0d7fdcfabc18190825aa40cea39`.
 Aplicación académica con inspecciones sintéticas; no es un servicio institucional
-de producción ni una certificación de cumplimiento legal. Javier implementará CSP,
-cabeceras y permisos mínimos; Carlos completará inventario, privacidad y cierre.
+de producción ni una certificación de cumplimiento legal. Javier incorpora CSP,
+cabeceras HTTP y permisos mínimos con verificación E2E sobre respuestas reales de producción; Carlos completará inventario, privacidad y cierre.
 
 ## Arquitectura, activos y límites de confianza
 
@@ -34,11 +34,11 @@ la revisión de acceso y minimización documental corresponde al cierre del equi
 | T01 | Entrada inválida o JSON manipulado altera registros o impide sincronizar | `security/validation.ts` usado por `storage/schema.ts`, a su vez por captura/cola/almacenamiento | `tests/security.spec.ts`: fechas, enteros seguros, controles invisibles, campos extra y operaciones huérfanas | Implementado. No autentica quién escribió localStorage |
 | T02 | Campos inesperados se conservan como datos sensibles | Listas de campos permitidos para borrador, entidad, operación, conflicto e instantánea | Caso de campos extra rechaza antes de escribir | Implementado. Texto libre todavía puede contener información real: usar solo datos sintéticos |
 | T03 | Instantánea excesiva bloquea el parser o agota almacenamiento | Límite de 4 × 1024 × 1024 caracteres antes de parsear/escribir | Lectura grande y escritura grande sin sobrescribir el valor anterior | Implementado. El navegador puede imponer una cuota menor; no garantiza memoria ilimitada |
-| T04 | Script inyectado mediante texto libre | Datos se mantienen como texto; React los renderiza mediante interpolación, sin HTML directo en captura | Inspección de `inspection-capture.tsx`; prueba de round-trip no destructivo de texto HTML | Escape de React existente; prueba de bloqueo en navegador y CSP pendientes de Javier |
+| T04 | Script inyectado mediante texto libre | Datos se mantienen como texto; React los renderiza mediante interpolación sin HTML directo y CSP restringe orígenes externos, objetos y base (`default-src 'self'`, `script-src`, `object-src 'none'`, `base-uri 'self'`) | `tests/security.spec.ts` (round-trip no destructivo) y `tests/e2e/security-headers.spec.ts` (captura de `<script>`/`<img onerror>` en navegador sin ejecución y bloqueo CSP de script externo) | Implementado. En producción `script-src` conserva `'unsafe-inline'` para los scripts de hidratación estática/offline de Next.js; la barrera primaria frente a texto capturado sigue siendo el escape de React |
 | T05 | Filtración de credenciales en Git o configuración pública | Detector consumido por `security:secrets` y `verify`; reportes solo con archivo/línea/regla | Pruebas negativas, documentación inocua y CLI en repositorio temporal | Implementado para patrones conocidos. No revisa historial, binarios ni ignorados; no garantiza ausencia de secretos |
-| T06 | Clickjacking, ejecución externa o permisos innecesarios | CSP, cabeceras y Permissions-Policy | Pruebas HTTP y navegador a incorporar | Pendiente Javier; no se declara mitigado por este incremento |
+| T06 | Clickjacking, ejecución externa o permisos innecesarios | `next.config.mjs` y `src/lib/security/headers.ts`: CSP (`frame-ancestors 'none'`, `script-src`, `style-src`, `img-src`, `connect-src`, `worker-src`, `manifest-src`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` y `Permissions-Policy: camera=(self), geolocation=(self), microphone=(), payment=(), usb=()` en `/:path*` | `tests/security.spec.ts` (contrato de directivas y `next.config.mjs`) y `tests/e2e/security-headers.spec.ts` (cabeceras HTTP en `/`, `/inspecciones`, detalle SSR, `/sw.js`, `/manifest.webmanifest` y `/offline.html`, operación de capacidades/SW sin violaciones CSP y bloqueo activo de script externo) | Implementado. Las notificaciones siguen gobernadas por la API de permisos del navegador y no por una directiva inexistente en `Permissions-Policy` |
 | T07 | Persistencia o transmisión excesiva de imágenes/ubicación | Inventario, minimización, retención y eliminación de datos | Inventario y pruebas de privacidad a incorporar | Pendiente Carlos; capacidades actuales usan valores temporales y fallback |
-| T08 | Robo o modificación de localStorage por otro script del mismo origen | Reducir superficie con CSP y minimizar datos | Controles presentes y pendientes anteriores | No hay cifrado local ni aislamiento frente a un script del mismo origen comprometido |
+| T08 | Robo o modificación de localStorage por otro script del mismo origen | Reducir superficie externa con CSP (`default-src 'self'`, `script-src`, `connect-src 'self'`) y minimizar datos | Controles de validación (T01-T03) y CSP verificada en `tests/e2e/security-headers.spec.ts` | Riesgo residual: no hay cifrado local ni aislamiento frente a un script del mismo origen comprometido |
 | T09 | Duplicación o pérdida de una operación al reconectar | Cola idempotente y receptor sintético; exclusión de envíos concurrentes | Integración de Semana 8 y regresiones de conectividad | Conservado. Sin coordinación entre pestañas ni servidor durable |
 | T10 | Dependencia vulnerable o transporte sin cifrar | Lockfile, instalación reproducible, auditoría y HTTPS en despliegue | Auditoría online del 31/10/2026: 17 paquetes afectados (14 moderados, 2 altos, 1 crítico) | Riesgo abierto: Next.js requiere evaluar una actualización mayor. URL HTTPS pendiente de confirmar; localhost no acredita HTTPS de despliegue |
 
@@ -55,6 +55,17 @@ la revisión de acceso y minimización documental corresponde al cierre del equi
   el JSON original para diagnóstico. No hay migración automática destructiva.
 - El texto no se convierte en HTML ni se "sanea" borrando caracteres arbitrariamente.
   Validación de entrada y escape de salida son controles distintos.
+
+## CSP, cabeceras HTTP y permisos mínimos (Incremento 2/3 — Javier)
+
+- `next.config.mjs` aplica en `/:path*` las cinco cabeceras construidas en `src/lib/security/headers.ts`:
+  - `Content-Security-Policy`: `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` (en `NODE_ENV === "development"` se añade `'unsafe-eval'` únicamente para Fast Refresh de Next.js; en producción no se incluye `'unsafe-eval'`).
+  - `X-Content-Type-Options: nosniff`.
+  - `Referrer-Policy: strict-origin-when-cross-origin`.
+  - `X-Frame-Options: DENY` (defensa en profundidad junto con `frame-ancestors 'none'`).
+  - `Permissions-Policy: camera=(self), geolocation=(self), microphone=(), payment=(), usb=()`.
+- Por qué `script-src` y `style-src` incluyen `'unsafe-inline'`: Next.js 14 App Router inyecta scripts inline de hidratación (`self.__next_f.push(...)`) en páginas prerenderizadas como `/inspecciones`, y el Service Worker (`/sw.js`) almacena esos documentos en caché para responder navegaciones offline donde no existe un servidor que regenere nonces por solicitud. Asimismo, `public/offline.html` y los paneles React utilizan estilos inline. Este compromiso mantiene operativo el modo offline real mientras bloquea scripts, conexiones, frames, workers y objetos de orígenes externos.
+- Por qué `Permissions-Policy` no incluye `notifications`: las notificaciones web se controlan mediante la Notification API / Permissions API del navegador tras gesto explícito del usuario y no forman parte de las características estándar de `Permissions-Policy`; agregar un identificador inexistente solo generaría advertencias de característica no reconocida sin aportar control real.
 
 ## Secretos, resultados y check público
 
@@ -102,9 +113,9 @@ Estos hallazgos no prueban explotación de esta app, pero siguen abiertos; prueb
 funcionales aprobadas no equivalen a dependencias sin vulnerabilidades. La revisión
 de actualización debe realizarse antes del cierre de seguridad o un despliegue real.
 
-El workflow propio acumulativo ejecuta verify y cada E2E tres veces, sin reintentos;
-verify:all sigue disponible para una ejecución local de los dos casos. El workflow oficial de Semana 9,
-inventario y robots se incorporarán durante el cierre, sin crear archivos vacíos para
+El workflow propio acumulativo ejecuta verify y cada E2E tres veces (3 suites × 3 repeticiones = 9 ejecuciones), sin reintentos;
+verify:all sigue disponible para una ejecución local de los tres casos (`inspection-offline.spec.ts`, `capabilities-fallback.spec.ts` y `security-headers.spec.ts`). El workflow oficial de Semana 9,
+inventario y robots se incorporarán durante el cierre de Carlos, sin crear archivos vacíos para
 simular cumplimiento. Ni un reporte aprobado ni la existencia de rutas constituyen
 una calificación. Evidencia, incidentes de entorno y validación humana se registran
-por separado en README y en la sección de Francisco.
+por separado en README y en las secciones individuales de Francisco y Javier.
