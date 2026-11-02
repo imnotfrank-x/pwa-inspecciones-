@@ -181,3 +181,56 @@ describe("Seguridad W09: CSP, cabeceras HTTP y permisos mínimos", () => {
     assert.ok(byKey["Content-Security-Policy"].includes("frame-ancestors 'none'"));
   });
 });
+
+describe("Seguridad W09: privacidad, minimización y rastreadores", () => {
+  const root = resolve(import.meta.dirname, "..");
+
+  it("robots.txt solicita no indexar ninguna ruta", () => {
+    const robots = readFileSync(
+      resolve(root, "public/robots.txt"),
+      "utf8"
+    ).replace(/\r\n/g, "\n");
+
+    assert.match(robots, /^User-agent:\s*\*$/m);
+    assert.match(robots, /^Disallow:\s*\/$/m);
+  });
+
+  it("el inventario documenta los datos y almacenamientos reales", () => {
+    const inventory = readFileSync(
+      resolve(root, "docs/privacy-data-inventory.md"),
+      "utf8"
+    );
+
+    for (const requiredTerm of [
+      "utt-lab-inspections:sync:v1",
+      "inspectorAlias",
+      "summary",
+      "localStorage",
+      "sessionStorage",
+      "Cache Storage",
+      "cámara",
+      "geolocalización",
+      "notificaciones",
+      "retención",
+      "supresión",
+      "datos sintéticos"
+    ]) {
+      assert.ok(
+        inventory.toLowerCase().includes(requiredTerm.toLowerCase()),
+        `Falta documentar: ${requiredTerm}`
+      );
+    }
+  });
+
+  it("documenta que robots.txt no es un control de acceso", () => {
+    const inventory = readFileSync(
+      resolve(root, "docs/privacy-data-inventory.md"),
+      "utf8"
+    );
+
+    assert.match(
+      inventory,
+      /robots\.txt[\s\S]*(?:no sustituye|no es).*(?:autenticación|control de acceso)/i
+    );
+  });
+});

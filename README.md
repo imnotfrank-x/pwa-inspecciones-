@@ -1,6 +1,6 @@
 # PWA de inspecciones de laboratorio — proyecto del equipo
 
-> Estado actual: [Semana 9, incremento de Francisco](#semana-9--incremento-de-francisco).
+> Estado actual: [Semana 9, seguridad y privacidad](#semana-9--seguridad-y-privacidad).
 > Las secciones anteriores a Semana 8 conservan resultados históricos; no describen todas las comprobaciones actuales.
 
 Comiencen por `START_HERE.md` y lean `ACTIVIDAD-01.md`. Este es un proyecto acumulativo: un repositorio privado por equipo durante el curso. La Semana 1 consiste en arrancar, documentar y explicar la verificación; no en implementar toda la PWA.
@@ -1067,4 +1067,94 @@ Resultados reales en este entorno:
 
 - `script-src` y `style-src` conservan `'unsafe-inline'` en producción porque Next.js 14 inserta scripts inline de hidratación en páginas prerenderizadas (`/inspecciones`) que el Service Worker sirve desde caché en modo offline sin servidor que emita nonces por petición; el escape de React sigue siendo el control primario contra inyección en datos de usuario.
 - La CSP y las cabeceras reducen la superficie de ejecución externa, framing y permisos de navegador, pero no cifran `localStorage` ni aíslan frente a código malicioso que ya se ejecute en el mismo origen.
-- Se mantienen abiertos los hallazgos de auditoría de dependencias registrados en [docs/threat-model.md](docs/threat-model.md) y quedan pendientes para Carlos `docs/privacy-data-inventory.md`, `robots.txt`, el workflow oficial de Semana 9 y el cierre.
+- En ese incremento se mantuvieron abiertos los hallazgos de auditoría de dependencias registrados en [docs/threat-model.md](docs/threat-model.md); el inventario, `robots.txt`, el workflow oficial y el cierre se incorporaron después en el incremento 3/3 de Carlos.
+
+## Semana 9 — seguridad y privacidad
+
+La Semana 9 cierra el análisis de seguridad del prototipo académico y documenta
+privacidad, minimización, retención y riesgos residuales. La aplicación utiliza
+exclusivamente datos sintéticos; no está autorizada para recibir información real
+ni constituye una certificación legal.
+
+### Reparto del incremento
+
+- **Francisco:** validación estricta en límites de dominio y almacenamiento,
+  detector propio de credenciales, modelo de amenazas inicial, auditoría y límites.
+- **Javier:** CSP, cabeceras HTTP, `Permissions-Policy` con permisos mínimos y E2E
+  sobre respuestas reales del servidor de producción.
+- **Carlos:** [inventario de datos y privacidad](docs/privacy-data-inventory.md),
+  minimización y retención, `public/robots.txt`, pruebas de contenido, workflow
+  oficial del kit, pipeline acumulativo y cierre documental.
+
+El [modelo de amenazas](docs/threat-model.md) relaciona estos controles con T01–T10.
+La [evidencia individual](evidence/individual.md) conserva por separado las
+contribuciones y validaciones de cada integrante.
+
+### Setup y comandos
+
+Entorno comprobado: Node.js `v20.19.0`, npm `10.8.2` y Playwright `1.64.1`.
+
+```bash
+npm ci
+npx playwright install chromium
+npm run lint
+npm run typecheck
+npm run security:secrets
+npm run test:security
+npm test
+npm run test -- --run
+npm run test:coverage
+npm run build
+npm run verify
+npm run test:e2e -- --repeat-each=3
+bash public-tests/check.sh
+git diff --check
+```
+
+`make verify` es equivalente a `npm run verify`. Si GNU Make no está disponible en
+Windows, se usa directamente el comando npm. No se ejecuta `npm audit fix --force`:
+una actualización mayor requiere revisar Next.js, React, CSP y el flujo offline.
+
+### Resultados observados
+
+- `npm ci`: código 0; 173 paquetes instalados, 174 auditados. npm mantuvo **17
+  paquetes afectados** —14 moderados, 2 altos y 1 crítico— como riesgo abierto.
+- Lint y TypeScript: código 0, sin errores ni advertencias.
+- `npm run security:secrets`: código 0; **101 archivos analizados y 0 hallazgos**.
+- Pruebas acumulativas: diez suites heredadas en `PASS`, **40/40 unitarias**,
+  **27/27 de integración** y **24/24 de seguridad**. Los tres casos añadidos por
+  Carlos verifican `robots.txt`, el inventario real y que `robots.txt` no se presente
+  como control de acceso.
+- Cobertura de unitarias + integración + seguridad: **66.68%** de líneas/sentencias,
+  **84.62%** de ramas y **70.30%** de funciones, manteniendo módulos no ejecutados
+  en el denominador.
+- Build de Next.js 14.2.35: código 0; `/inspecciones` reportó 12 kB propios y
+  104 kB de First Load JS; `/inspecciones/[id]` permaneció dinámica.
+- `npm run verify`: código 0 y `Verificación técnica: pass`.
+- E2E: **9/9 aprobados**, tres suites repetidas tres veces, con `retries: 0`.
+- La variante `npm run test -- --run`, el check oficial (`PUBLIC_OK`) y
+  `git diff --check` se confirman antes del commit técnico.
+
+La primera ejecución aislada de la suite de seguridad no pudo escribir `.git/config`
+en su repositorio temporal. Al ejecutarla con acceso al directorio temporal, aprobó
+24/24; fue una restricción del entorno, no una corrección del producto.
+
+### Privacidad, indexación y límites
+
+La inspección y la cola permanecen en `localStorage` hasta limpiar los datos del sitio
+o invocar el método de borrado; no existe expiración automática ni una interfaz visible
+de supresión. Cámara y geolocalización quedan en memoria, no forman parte del esquema
+y no se sincronizan. Las notificaciones no crean suscripciones remotas. El receptor
+sintético vive en memoria y no es un backend durable.
+
+`public/robots.txt` solicita no indexar ninguna ruta porque el prototipo académico no
+debe aparecer en buscadores. Es una petición voluntaria: no protege información ni
+sustituye autenticación, autorización o un despliegue privado. Para un uso institucional
+faltan responsable, aviso de privacidad, periodos formales de conservación, derechos
+ARCO, control de acceso, backend autorizado y HTTPS comprobado. T10 y los 17 hallazgos
+de dependencias permanecen abiertos.
+
+El workflow oficial `.github/workflows/week-09-w09-security-privacy.yml` y los dos
+archivos de `public-tests` se conservaron byte por byte desde el ZIP. El workflow
+acumulativo ejecuta instalación limpia, Chromium, `npm run verify`, el check oficial,
+los E2E repetidos tres veces y publica `w09-final-<SHA>` incluso cuando una etapa falla.

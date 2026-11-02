@@ -8,6 +8,7 @@ required.push("docs/test-strategy.md", "docs/controlled-defect.md", ".github/wor
 required.push("tests/integration/sync-regressions.test.ts");
 required.push("playwright.config.ts", "tests/e2e/inspection-offline.spec.ts", "tests/e2e/capabilities-fallback.spec.ts", "tests/e2e/security-headers.spec.ts");
 required.push("docs/threat-model.md", "src/lib/security/validation.ts", "src/lib/security/secrets.ts", "src/lib/security/headers.ts", "scripts/check-secrets.mjs", "tests/security.spec.ts");
+required.push("docs/privacy-data-inventory.md", "public/robots.txt", ".github/workflows/week-09-w09-security-privacy.yml", "public-tests/check.sh");
 const missing = required.filter(file => !existsSync(resolve(root, file)));
 const structureOnly = process.argv.includes("--structure");
 if (structureOnly) {
@@ -36,7 +37,7 @@ const git = args => {
   const r = spawnSync("git", args, { cwd: root, encoding: "utf8" });
   return r.status === 0 ? r.stdout.trim() : null;
 };
-const documents = ["docs/requirements.md", "docs/decision-record.md", "docs/cache-strategy.md", "docs/rendering-decision.md", "docs/test-strategy.md", "docs/controlled-defect.md", "docs/threat-model.md", "evidence/individual.md", "README.md"].map(file => ({ file, content: existsSync(resolve(root, file)) ? readFileSync(resolve(root, file), "utf8") : null }));
+const documents = ["docs/requirements.md", "docs/decision-record.md", "docs/cache-strategy.md", "docs/rendering-decision.md", "docs/test-strategy.md", "docs/controlled-defect.md", "docs/threat-model.md", "docs/privacy-data-inventory.md", "evidence/individual.md", "README.md"].map(file => ({ file, content: existsSync(resolve(root, file)) ? readFileSync(resolve(root, file), "utf8") : null }));
 const gitStatus = git(["status", "--porcelain"]);
 const result = {
   schemaVersion: 2,
@@ -44,7 +45,7 @@ const result = {
   commitSha: git(["rev-parse", "HEAD"]),
   workingTreeClean: gitStatus === null ? null : gitStatus === "",
   runtime: { node: process.version },
-  scope: "Semana 9, incremento 2/3 de Javier: validación, detector de secretos, modelo de amenazas, CSP, cabeceras HTTP y Permissions-Policy con E2E sobre respuestas de producción. Inventario/privacidad/cierre (Carlos) pendientes. verify:all añade E2E después del build.",
+  scope: "Semana 9, cierre 3/3: validación y detector de credenciales; CSP, cabeceras HTTP y permisos mínimos; inventario de privacidad, minimización, robots.txt y workflows final/oficial. verify ejecuta lint, tipos, detector, pruebas, cobertura y build; los E2E repetidos se ejecutan por separado.",
   status: checks.every(c => c.status === "pass") ? "pass" : "fail",
   checks,
   academicReview: { status: "pending", message: "Sin calificación automática. Revisar requisitos, decisión y evidencia por integrante con la rúbrica; existencia no implica calidad.", documents },
