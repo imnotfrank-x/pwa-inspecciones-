@@ -148,6 +148,30 @@ describe("Integración del controlador de sincronización y la interfaz", () => 
     assert.equal(target.listenerCount("pagehide"), 0);
   });
 
+  it("libera el marcador heredado cuando la página reabre realmente en línea", async () => {
+    const target = new FakeConnectivityTarget();
+    const entries = new Map<string, string>([[CONNECTIVITY_SESSION_KEY, "1"]]);
+    let confirmedOnline = 0;
+    const gate = createConnectivityGate({
+      target,
+      readOnline: () => true,
+      onlineStabilityMs: 0,
+      onConfirmedOnline: () => { confirmedOnline += 1; },
+      storage: {
+        getItem: key => entries.get(key) ?? null,
+        setItem: (key, value) => { entries.set(key, value); },
+        removeItem: key => { entries.delete(key); }
+      }
+    });
+
+    assert.equal(gate.isOnline(), false, "el marcador se conserva durante la confirmación");
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(gate.isOnline(), true);
+    assert.equal(entries.has(CONNECTIVITY_SESSION_KEY), false);
+    assert.equal(confirmedOnline, 1);
+    gate.dispose();
+  });
+
   it("pagehide cierra el gate anterior antes de que pueda borrar el marcador compartido", () => {
     const target = new FakeConnectivityTarget();
     const entries = new Map<string, string>([[CONNECTIVITY_SESSION_KEY, "1"]]);

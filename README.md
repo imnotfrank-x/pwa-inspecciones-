@@ -1157,7 +1157,8 @@ faltan responsable, aviso de privacidad, periodos formales de conservación, der
 ARCO, control de acceso, backend autorizado y HTTPS comprobado. T10 y los 17 hallazgos
 de dependencias permanecen abiertos.
 
-El workflow oficial `.github/workflows/week-09-w09-security-privacy.yml` y los dos
-archivos de `public-tests` se conservaron byte por byte desde el ZIP. El workflow
+El workflow oficial `.github/workflows/week-09-w09-security-privacy.yml` se conservó
+byte por byte desde el ZIP. Los dos archivos de `public-tests` conservan el contenido
+funcional oficial; únicamente se retiró su línea vacía final. El workflow
 acumulativo ejecuta instalación limpia, Chromium, `npm run verify`, el check oficial,
 los E2E repetidos tres veces y publica `w09-final-<SHA>` incluso cuando una etapa falla.
