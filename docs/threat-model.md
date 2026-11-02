@@ -5,7 +5,8 @@
 Incremento 3/3 y cierre: Francisco implementó validación, detector de credenciales y
 modelo inicial; Javier incorporó CSP, cabeceras HTTP y permisos mínimos; Carlos completó
 privacidad, inventario de datos, `robots.txt`, workflow oficial y cierre sobre
-`2e3ed02ddab79e1230906078c215171ae53f8005`.
+`2e3ed02ddab79e1230906078c215171ae53f8005`; el cierre técnico de Carlos quedó
+fijado en `db1975851784fe0ef25b7208e639f3c3a4acccb4`.
 Aplicación académica con inspecciones sintéticas; no es un servicio institucional
 de producción ni una certificación de cumplimiento legal.
 

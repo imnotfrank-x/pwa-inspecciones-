@@ -1076,6 +1076,9 @@ privacidad, minimización, retención y riesgos residuales. La aplicación utili
 exclusivamente datos sintéticos; no está autorizada para recibir información real
 ni constituye una certificación legal.
 
+Rama de cierre: `w09/carlos-privacy-cierre`. SHA técnico de Carlos:
+`db1975851784fe0ef25b7208e639f3c3a4acccb4`.
+
 ### Reparto del incremento
 
 - **Francisco:** validación estricta en límites de dominio y almacenamiento,
@@ -1130,7 +1133,7 @@ una actualización mayor requiere revisar Next.js, React, CSP y el flujo offline
   en el denominador.
 - Build de Next.js 14.2.35: código 0; `/inspecciones` reportó 12 kB propios y
   104 kB de First Load JS; `/inspecciones/[id]` permaneció dinámica.
-- `npm run verify`: código 0 y `Verificación técnica: pass`.
+- `npm run verify` y `make verify`: código 0 y `Verificación técnica: pass`.
 - E2E: **9/9 aprobados**, tres suites repetidas tres veces, con `retries: 0`.
 - La variante `npm run test -- --run`, el check oficial (`PUBLIC_OK`) y
   `git diff --check` se confirman antes del commit técnico.
