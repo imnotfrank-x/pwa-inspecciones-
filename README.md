@@ -906,9 +906,9 @@ sin cambios el experimento controlado y la evidencia de los demás integrantes.
 ## Semana 9 — incremento de Francisco
 
 Base: `91f3fc4da626ad150311c44e7c22a1186f5d221c`. Rama de trabajo:
-`w09/francisco-seguridad`. Este es el incremento 1/3; CSP/permisos corresponden a
-Javier e inventario de privacidad, robots y cierre a Carlos. No se declara terminada
-la Semana 9 ni se modifica la entrega fijada de Semana 8.
+`w09/francisco-seguridad`. Este apartado registra la aportación asignada y completada
+por Francisco; Javier completó CSP y permisos, y Carlos completó el inventario de
+privacidad, `robots.txt` y el cierre de Semana 9.
 
 El [modelo de amenazas](docs/threat-model.md) relaciona activos, fronteras de confianza,
 amenazas, controles, pruebas y riesgos residuales. `src/lib/security/validation.ts`

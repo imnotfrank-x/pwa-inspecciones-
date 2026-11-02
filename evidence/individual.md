@@ -101,7 +101,7 @@
 - **Cambio que puedo explicar:** Cambiar la condición de continuidad de la cola y demostrar que la prueba detecta un segundo envío tras cierre; o provocar un fallo de confirmación para explicar por qué se conserva la clave y el reintento no duplica efectos.
 - **Uso de IA y validación humana:** Utilicé Codex para reproducir los fallos, implementar las correcciones, diseñar y ejecutar las regresiones y la verificación completa, y redactar este apartado. Las ejecuciones reportadas son reales y fueron realizadas por el asistente. La revisión personal de Francisco del diff, repetición de comandos y comprobación visual siguen pendientes antes de la entrega académica; no se declaran como realizadas.
 
-### Incremento personal — Semana 9 (Francisco, incremento 1/3)
+### Aportación personal — Semana 9 (Francisco, aportación asignada completada)
 
 - **Commits técnicos:** Implementación `b2a6a08f0e16634ad4b223c4795617568dea3206`, corrección de cobertura `7fdda2fc0aed60fd414e7cb51814c06977b0b70a` y cierre de conectividad `f0071517f049f338fe50c933ce2266ad92b85308`, rama `w09/francisco-seguridad`, base `91f3fc4da626ad150311c44e7c22a1186f5d221c`. Estos SHA identifican mi aportación; no son la entrega final de Semana 9. El SHA documental posterior identifica el pase a Javier.
 - **Contribución concreta:** Modelo de amenazas con activos, límites de confianza y riesgos residuales; validación compartida en `src/lib/security/validation.ts` consumida por el esquema local; detector de patrones de secretos con CLI y reportes redactados; `tests/security.spec.ts`; incorporación al runner, tipos, lint, cobertura y verificador acumulativo. CSP/permisos siguen asignados a Javier e inventario/privacidad/cierre a Carlos.
